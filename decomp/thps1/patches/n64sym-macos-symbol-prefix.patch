@@ -1,0 +1,12 @@
+diff --git a/src/builtin_signatures_include.s b/src/builtin_signatures_include.s
+index 890664b..4e17936 100644
+--- a/src/builtin_signatures_include.s
++++ b/src/builtin_signatures_include.s
+@@ -1,5 +1,7 @@
+ .global gBuiltinSignatureFile
++.global _gBuiltinSignatureFile
+ 
++_gBuiltinSignatureFile:
+ gBuiltinSignatureFile:
+     .incbin "builtin_signatures.sig.defl"
+     .long 0

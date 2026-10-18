@@ -1,0 +1,27 @@
+# Game profile of the THPS1 recomp host (the shared host is decomp/common/host). Read by gen_versions.py (-> thps::game in
+# build/gen/thps_versions.h), the shared Python tools and the shared CMake file. Keys: decomp/common/host/README.md.
+# Facts and wording only: no ROM data.
+family        = "thps1"                     # games.toml family; the executable is thps1_recomp; config/thps1.*.toml, recipes' thps1.host.toml
+short_name    = "THPS1"
+app_name      = "THPS1 64 Recompiled"               # the macOS app bundle and its CFBundleName (no colon: macOS shows it as "/")
+product       = "THPS1-64Recomp"                    # the repository, the Windows exe in the zip, the zip prefix (<product>-v<version>-<OS>[-arch].zip)
+title         = "Tony Hawk's Pro Skater"
+window_title  = "Tony Hawk's Pro Skater (N64 recomp)"
+config_dir    = "THPS1-64Recomp"                      # per-user folder (Application Support / %LOCALAPPDATA% / ~/.config); = product
+mod_game_id   = "thps1"                     # librecomp's --game name
+about         = "Tony Hawk's Pro Skater (1999, the first game)"          # rom_check: "This app plays <about>."
+header_prefix = "TONY HAWK"                    # ROM header name starts with this: some version of the game
+revision_note = " (= version 1.%u)"          # printf format with the header revision, or ""
+menu_cursor_box_pct = [30, 70, 30, 80]       # latency.cpp: where the highlighted menu entry is (percent of the frame: x0, x1, y0, y1)
+overlays      = false                          # front-end screens are relocatable overlays in the ROM tail (hooks.cpp, overlay_recomp.py)
+b_is_flip_in_game = false                 # N64 B also flips while skating, so the controller preset drops it in a 3D view (input.cpp)
+lores_ring_clear = true                   # 320x240 3D frames: the left/right 8 px of the colour buffer are never cleared; after a 640x480 screen (the competition intro) the three buffers keep its text there for the whole level (playtest 2026-10-14, Chicago)
+p2_menu_mirror = true                     # OPTIONS > PLAYER 2 CONTROLS reads only port 2: with no second pad, port 2 mirrors port 1 in menus (input.cpp)
+hires_ring_clear = true                   # the 640x480 screens never clear the outer 8 px of their colour buffer: the host clears that ring black (dl_fixes.cpp)
+
+hud_placement = true                     # the HUD Placement setting (graphics.cfg `hud`) works: the host anchors the 2D layer to the picture's edges (hud_anchor.cpp)
+icon_number   = 1                          # the numeral on the app icon (tools/make_app_icon.py); default: the digits of `family`
+icon_svg      = "icon.svg"                  # the hand-drawn app icon (path relative to this file); takes precedence over icon_variant, which is the procedural fallback
+icon_svg_small = "icon-small.svg"           # simplified drawing for 48 px and below (big number badge; make_app_icon.py SMALL_ICON_MAX_PX)
+icon_variant  = "deck"                    # procedural look when there is no icon_svg: deck | neon | big (previews in media/icons/); default deck
+interp_ids_max_step = 100.0                 # interp_ids.cpp: world units a model piece may move per game frame and still be the same object (measured step of the skater: 1.5-4)

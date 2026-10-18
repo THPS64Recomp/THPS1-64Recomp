@@ -1,0 +1,16 @@
+# Everything derived from the user's ROM stays local (see README "Copyright").
+/baserom*
+*.z64
+*.n64
+*.v64
+asm/
+assets/
+build/
+linker_scripts/
+include/
+.splache
+.venv/
+__pycache__/
+*.pyc
+tools/vendor_bin/
+.deps/

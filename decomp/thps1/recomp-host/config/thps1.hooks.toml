@@ -1,0 +1,102 @@
+# [[patches.hook]] blocks shared by every THPS1 code class. All are BY FUNCTION NAME: the names
+# are forced onto each class's symbol file (versions/<class>/host_force.toml), so no address
+# appears here. tools/gen_versions.py writes the per-class N64Recomp config (inputs, COP2
+# patches) and appends this file. The hook bodies call host functions (src/*.cpp).
+
+# --- Loader / ROM access (all hardware access is in the boot segment) -------
+# PI-polled word copy (spins on PI_STATUS, reads the cart through KSEG1).
+[[patches.hook]]
+func = "Boot_PioCopy"
+text = "thps_boot_pio_copy(rdram, ctx); return;"
+
+# Handwritten RNC ProPack ("ERZ") decoders: they call themselves through jalr
+# with computed addresses, so replace them with a native decoder.
+[[patches.hook]]
+func = "Erz_UnpackMethod1"
+text = "thps_erz_unpack(rdram, ctx, 1); return;"
+
+[[patches.hook]]
+func = "Erz_UnpackMethod2"
+text = "thps_erz_unpack(rdram, ctx, 2); return;"
+
+# The game's DMA thread (Pi_DmaThread, 0x800BAE84) uses osPiRawStartDma and
+# waits for OS_EVENT_PI. The runtime's osPiRawStartDma is a fatal stub and its
+# osSetEventMesg ignores OS_EVENT_PI, so both are renamed (gen_host_syms.py)
+# and hooked here.
+[[patches.hook]]
+func = "thps_osPiRawStartDma"
+text = "thps_pi_raw_start_dma(rdram, ctx); return;"
+
+[[patches.hook]]
+func = "thps_osSetEventMesg"
+text = "thps_set_event_mesg(rdram, ctx); return;"
+
+# Diagnostic: when the boot loader jumps to GameEntry, compare the inflated main
+# image in RDRAM with a native inflate of the ROM's chunk table (logs a count only).
+[[patches.hook]]
+func = "GameEntry"
+text = "thps_on_game_entry(rdram, ctx);"
+
+# Audio pacing. The audio thread (0x800BB8F8) wakes on every retrace and skips the
+# retrace while osAiGetStatus() reports the AI DMA FIFO full (bit 31); each buffer is
+# 552 or 736 frames (1/30 s at 22050 Hz). The runtime's osAiGetStatus always says "not
+# full", which made the game produce 1.75x real time. The hook reports "full" while the
+# host's audio queue holds more than ~one buffer.
+[[patches.hook]]
+func = "thps_osAiGetStatus"
+text = "thps_ai_get_status(rdram, ctx); return;"
+
+# Controller Pak presence. The pak manager's note list (LOAD DATA, career LOAD GAME) polls
+# osContStartQuery/osContGetQuery every frame and closes itself unless the port's status has
+# CONT_CARD_ON. The runtime sets that bit only for a Rumble Pak (ultramodern Pak enum has no
+# Controller Pak), so the hook adds it for ports where src/pak.cpp has a pak.
+[[patches.hook]]
+func = "thps_osContGetQuery"
+text = "thps_cont_get_query(rdram, ctx); return;"
+
+# Widescreen (src/widescreen.cpp). RT64 widens the 3D projection itself (aspect 16:9 /
+# 21:9 / expand); the game must also stop culling and clipping at the 4:3 frustum.
+# View_ComputeCullPlanes builds the view-space side planes from the frustum's l/r/b/t;
+# the hook re-runs it with l and r scaled by the widening factor, then restores them.
+[[patches.hook]]
+func = "View_ComputeCullPlanes"
+text = "if (thps_widen_cull_planes(rdram, ctx)) return;"
+
+# View_SetFrustum: in widescreen, the culling matrix the game derives from the frustum
+# (+0x120) is built from a widened l/r, while the projection sent to the RSP stays 4:3
+# (RT64 widens that one itself). See src/widescreen.cpp.
+[[patches.hook]]
+func = "View_SetFrustum"
+text = "if (thps_view_set_frustum(rdram, ctx)) return;"
+
+# Skip Intro (src/skip_intro.cpp, General tab / --skip-intro). Front_IntroUpdate is the legal
+# screen + logo videos screen; it returns 3 when it is done (START after the legal screen's
+# minimum time, or the last logo), and the front end then shows the title. With Skip Intro on,
+# it returns 3 on its first frame. Front_NoticeUpdate is the pak/notice message screen; at boot
+# it shows "EXPANSION PAK FOUND." until B (or a timeout): the hook has the host press B once.
+[[patches.hook]]
+func = "Front_IntroUpdate"
+text = "if (thps_skip_intro_logos(rdram, ctx)) { ctx->r2 = 3; return; }"
+
+[[patches.hook]]
+func = "Front_NoticeUpdate"
+text = "thps_skip_intro_notice(rdram, ctx);"
+
+# Name entry (game/name_entry.cpp). NameEntry_Update is the per-frame update of the SAVE CAREER / SAVE DATA name screen; it reads
+# only the D-pad. The hook just reports "running" so the host can map the left stick and the keyboard arrows to the D-pad then.
+[[patches.hook]]
+func = "NameEntry_Update"
+text = "{ extern void thps_name_entry_update(uint8_t* rdram, recomp_context* ctx); thps_name_entry_update(rdram, ctx); }"
+
+# Unlock All Levels (test aid, off by default; game/cheats.cpp). CourseSelect_UpdateLock(screen) sets the locked word of the course under
+# the SELECT COURSE cursor from the tapes / medals it needs; with the cheat on, the hook clears that word and skips the count.
+[[patches.hook]]
+func = "CourseSelect_UpdateLock"
+text = "if (thps_unlock_course(rdram, ctx)) return;"
+
+# Music (src/music.cpp). Music_LoadSong(player, song) copies the next song over the one still playing; the old song's
+# channels, only marked to stop, would run one more frame of events from the new bytes (THPS2: SIGBUS in n_alLoadParam
+# at the end of a run). The hook stops them without further events first. THPS_MUSIC_GUARD=0 turns it off (A/B).
+[[patches.hook]]
+func = "Music_LoadSong"
+text = "thps_music_load_song(rdram, ctx);"

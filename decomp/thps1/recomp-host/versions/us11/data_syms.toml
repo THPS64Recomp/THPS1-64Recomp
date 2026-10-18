@@ -1,0 +1,32 @@
+# Game data addresses and struct offsets for code class us11 (names: versions/host_syms.toml).
+# Facts only; where each was found: the private development notes (Q17 skip intro, Q22 controls, Q18 interpolation).
+[addr]
+gMsgLine0              = 0x800D35C4   # message object 0x800D3130 + 0x494
+gMsgState              = 0x800EA550   # nonzero (2) while a notice message is up
+gTextExpansionFound    = 0x8002100C
+gTextExpansionNotFound = 0x80021024
+gSControl              = 0x800D49E0
+gSkater                = 0x800D61A8
+gPhysicsFrameTime      = 0x800F5668
+gNameEntryBuf         = 0x800D3668   # name entry: the 13-character name being typed (ASCII, lower case; 0x20 = blank); the slots are drawn from it
+gTvType                = 0x800F56BC
+gCourseTable           = 0x800D5C1C   # SELECT COURSE records (stride 0x78; CourseSelect_UpdateLock indexes it with gCourseCursor)
+gTimeScale             = 0x800DE99C   # physics step: gPhysicsFrameTime * 7680 at the course start, halved there with slow motion
+gCheatPerfectBalance   = 0x800DE840   # cheat flags, from the cheat-code handler's toggles (us11 func_80069064 / us10 func_80068844) and their readers
+gCheatSlowMotion       = 0x800DE860   # read by the frame update (us11 func_80035D08): halves the step; set clears fast motion
+gCheatSkipToRestart    = 0x800DE848   # read by the pause menu builder (us11 func_80091974)
+gCareerSkaters         = 0x800DE9F4   # career: 10 skater records of 20 bytes (+8 tapes; the course select reads the current skater's)
+gCourseCursor          = 0x800C0E20   # course under the cursor (word, 0..8)
+gMusNumChannels        = 0x800FC2F0   # MUS library globals: channel count; MusHandleStop 0x800ABE14 / __MusIntMain 0x800AC8BC read both
+gMusChannels           = 0x800FC2F8   # MUS library globals: the channel records (304 bytes each)
+
+[field]
+View_Frustum         = 0x160   # l, r, b, t, near, far (floats)
+Skater_ControlPtr    = 0x964
+Skater_PhysState     = 0x82C
+Skater_TrickCounters = 0x520
+Skater_MagicPoints   = 0x348
+Skater_MagicTime     = 0x34C
+Skater_RailBalance   = 0x9DC
+Course_Stride        = 0x78
+Course_Locked        = 0x10

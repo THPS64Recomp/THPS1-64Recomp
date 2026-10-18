@@ -1,0 +1,60 @@
+# splat config for the THPS1 (N64, U v1.1) *decompressed main image*.
+#
+# The ROM stores the game code as 14 ERZ (= RNC ProPack method 1) chunks that
+# the boot loader inflates to 0x80016AC0. `tools/thps_unpack.py` rebuilds that
+# image as baserom.main.bin (gitignored). This config splits the image, the way
+# Conker's second splat pass splits its inflated rzip blob.
+#
+# Layout (verified, see the private development notes):
+#   0x80016AC0  .rodata  float consts, strings, jump tables, vtables
+#   0x800223AC  ctor list (pointers to _GLOBAL_$I$ static-init functions)
+#   0x800223C0  .text    first function (lowest jal target)
+#   0x800C0E20  .data    after the last `jr ra` (0x800C0E14 + delay slot)
+#   0x800F6460  .bss     cleared by boot main up to 0x800FC8C5
+name: Tony Hawk's Pro Skater (U) (V1.1) main image
+sha1: 7725fd5d2420769446ef81e207fddd398948781f   # of the decompressed image
+options:
+  basename: thps1_main
+  target_path: baserom.main.bin
+  base_path: ..
+  platform: n64
+  compiler: GCC          # GCC-family C++ (KMC vs SN64 undecided, see README)
+  section_order: [".rodata", ".text", ".data", ".bss"]
+  asm_path: asm/main
+  asset_path: assets/main
+  build_path: build
+  ld_script_path: linker_scripts/thps1_main.ld
+  undefined_funcs_auto_path: linker_scripts/main_undefined_funcs_auto.txt
+  undefined_syms_auto_path: linker_scripts/main_undefined_syms_auto.txt
+  symbol_addrs_path:
+    - symbols/boot.txt      # libultra & loader live in the boot segment
+    - symbols/main.txt
+  find_file_boundaries: False
+  migrate_rodata_to_functions: False
+  create_c_files: False
+  ld_bss_is_noload: True
+  # The main image is not a ROM segment of its own; rom offsets are image offsets.
+  o_as_suffix: True
+  mnemonic_ljust: 10
+  rom_address_padding: True
+  generate_asm_macros_files: True
+segments:
+  - name: main
+    type: code
+    start: 0x0
+    vram: 0x80016AC0
+    bss_size: 0x6470          # 0x800F6460..0x800FC8D0 (boot clears ..0x800FC8C5)
+    subsegments:
+      - [0x0000, rodata, rodata]
+      - [0xB900, asm, text]
+      # RSP microcode .text linked into the CPU .text section (libultra/libmus
+      # ucode objects): n_aspMain (libmus audio), rspboot, F3DEX.NoN 2.08
+      # fifo + xbus. Kept as binary; never MIPS-disassembled or recompiled.
+      - [0x81180, textbin, rsp_n_aspMain_text]    # 0x80097C40 (0xC60)
+      - [0x81DE0, textbin, rsp_rspboot_text]      # 0x800988A0 (0xD0)
+      - [0x81EB0, textbin, rsp_f3dex_fifo_text]   # 0x80098970 (0x1390)
+      - [0x83240, textbin, rsp_f3dex_xbus_text]   # 0x80099D00 (0x1390 + 0x10 pad)
+      - [0x845E0, asm, text2]
+      - [0xAA360, data, data]
+      - { start: 0xDF9A0, type: bss, vram: 0x800F6460, name: bss }
+  - [0xDF9A0]

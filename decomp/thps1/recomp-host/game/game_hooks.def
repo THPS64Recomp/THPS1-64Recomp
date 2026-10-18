@@ -1,0 +1,5 @@
+// THPS1's own hook functions (src/thps_hooks.h; defined in game/skip_intro.cpp, game/name_entry.cpp, game/cheats.cpp), appended to the engine's import table
+// (common/host/src/game_imports.def). Kinds: see that file.
+THPS_IMPORT(CTX_RET, thps_skip_intro_logos)
+THPS_IMPORT(CTX, thps_name_entry_update)
+THPS_IMPORT(CTX_RET, thps_unlock_course)

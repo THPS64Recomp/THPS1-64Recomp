@@ -1,0 +1,24 @@
+# RSPRecomp config for THPS1's audio microcode (libultra n_aspMain, the n_audio/libmus
+# ucode; task ucode 0x80097C40, ucode_data 0x800E95E0, logged by the host at the first
+# M_AUDTASK). Paths are relative to this file; input and output are ROM-derived and local:
+#   ../../build/thps1.codeblob.bin   decomp `make recomp-inputs` (main image at blob 0x13B10)
+#   ../build/gen/rsp/n_aspMain.cpp   generated
+# Text: 0x80097C40..0x800988A0 (0xC60 bytes; rspboot follows at 0x800988A0), loaded by
+# rspboot to IMEM 0x1080. Blob offset = 0x13B10 + (0x80097C40 - 0x80016AC0) = 0x94C90.
+# This file is also the template for every code class: tools/gen_versions.py rsp-config rewrites
+# text_offset from the class's games.toml `ucode` row (USA v1.0: 0x94460) and the two paths
+# (tools/gen.py and tools/package_split.py use that; the values above are v1.1's).
+text_offset = 0x94C90
+text_size = 0xC60
+text_address = 0x04001080
+rom_file_path = "../../build/thps1.codeblob.bin"
+output_file_path = "../build/gen/rsp/n_aspMain.cpp"
+output_function_name = "n_aspMain"
+# Command dispatch (IMEM 0x10D4: srl/andi/lh 0(cmd>>23 & 0xFE); jr $1): the 16-entry
+# halfword table at DMEM 0x0000 of the ucode data. Entries 7 and 8 are 0 (unused). Entry 14
+# is stored as 0x02B0: the RSP PC is 12 bits, so that is IMEM 0x2B0 = 0x12B0 (the game
+# uses command 14, so it must be listed).
+extra_indirect_branch_targets = [
+    0x10EC, 0x139C, 0x119C, 0x1A64, 0x11C8, 0x17EC, 0x1208,
+    0x127C, 0x1348, 0x1248, 0x1C84, 0x12D4, 0x12B0, 0x1384,
+]

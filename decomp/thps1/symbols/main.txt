@@ -1,0 +1,453 @@
+// THPS1 (N64, U v1.1) main image (decompressed ERZ chunks) at 0x80016AC0.
+// splat symbol_addrs format. Provenance tags:
+//   n64sym   = shygoo/n64sym signature hit (exact bytes) inside the main image
+//   ps1      = name of the PS1 THPS2-demo decomp function this one corresponds
+//              to (cross-match; see docs/symbols.md for evidence + confidence)
+//   rsp      = RSP microcode blob located by signature + version string
+//   manual   = hand-identified
+// Names are identifiers only; no code from any reference project is used.
+
+// --- entry / runtime
+GameEntry = 0x800C0480; // type:func manual - boot main jal target after inflating
+
+// --- RSP microcode .text (excluded from MIPS function lists)
+n_aspMainTextStart = 0x80097C40; // rsp size:0xC60 (libmus/n_audio audio ucode)
+rspbootTextStart = 0x800988A0; // rsp size:0xD0
+gspF3DEX_NoN_fifoTextStart = 0x80098970; // rsp size:0x1390 "F3DEX.NoN fifo 2.08"
+gspF3DEX_NoN_xbusTextStart = 0x80099D00; // rsp size:0x1390 "F3DEX.NoN xbus 2.08"
+
+// --- libgcc / libmus (Software Creations N64 music player) / n_audio, n64sym
+__udiv_w_sdiv = 0x80022DA4; // type:func size:0x8 n64sym
+n_alSynRemovePlayer = 0x800A73EC; // type:func size:0x258 n64sym
+Fstop = 0x800AAA60; // type:func size:0x20 n64sym
+Fport = 0x800AAAB0; // type:func size:0x24 n64sym
+Fportoff = 0x800AAAD4; // type:func size:0xC n64sym
+Fviboff = 0x800AADF0; // type:func size:0x10 n64sym
+Flength = 0x800AAE00; // type:func size:0x30 n64sym
+Fenvon = 0x800AAF24; // type:func size:0xC n64sym
+Ftron = 0x800AAF40; // type:func size:0xC n64sym
+Fwobbleoff = 0x800AB0B8; // type:func size:0xC n64sym
+Fveloff = 0x800AB0D4; // type:func size:0xC n64sym
+Fstereo = 0x800AB108; // type:func size:0x8 n64sym
+Fdrumsoff = 0x800AB158; // type:func size:0xC n64sym
+Fprint = 0x800AB164; // type:func size:0x8 n64sym
+Flength0 = 0x800AB480; // type:func size:0xC n64sym
+MusStartSong = 0x800AB75C; // type:func size:0x30 n64sym
+MusHandlePause = 0x800AC314; // type:func size:0x24 n64sym
+MusHandleUnPause = 0x800AC338; // type:func size:0x28 n64sym
+MusFxBankSetPtrBank = 0x800AC480; // type:func size:0x8 n64sym
+player_text_1AE0 = 0x800AC6D4; // type:func size:0x9C n64sym
+__MusIntInitSweep = 0x800AD4E0; // type:func size:0x1C n64sym
+player_text_329C = 0x800AE1A0; // type:func size:0x1E4 n64sym
+n_alLoadParam = 0x800AF5A4; // type:func size:0x17C n64sym
+n_alResampleParam = 0x800AFA10; // type:func size:0x20 n64sym
+n_alSynDelete = 0x800AFA30; // type:func size:0x1C n64sym
+n_synthesizer_text_052C = 0x800B02E4; // type:func size:0x4C n64sym
+_n_timeToSamples = 0x800B0330; // type:func size:0x24 n64sym
+osAfterPreNMI = 0x800B3344; // type:func size:0x1C n64sym
+__osSpSetPc_800B3690 = 0x800B3690; // type:func size:0x48 n64sym
+n_syn = 0x800ECC34; // n64sym
+
+// --- Neversoft game code, PS1 cross-match (high confidence only; docs/symbols.md)
+PingPong = 0x8005C954; // type:func size:0xB8 ps1 PHYSICS.cpp, exp 06 (60/fps, 3 divs)
+GetFaceFlags = 0x8005CA0C; // type:func ps1 PHYSICS.cpp (masks 64/128/7680 = source literals)
+// CBruce (skater) physics / tricks / scoring. Evidence + confidence per line:
+//   [H] verified by reading the N64 asm against the PS1 function's behaviour
+//   [M] string anchor or distinctive-constant fingerprint + source order
+// Names follow the PS1 decomp's (GCC 2.x) function names, unmangled.
+Trick_TakeOff__6CBruce = 0x8004C9E8; // type:func ps1 [M] order + mAutoTurn=15
+Trick_Trick__6CBrucePcii = 0x8004CACC; // type:func ps1 [H] called by Trick_Land with (name, -50*n, lock 0)
+Trick_Land__6CBruce = 0x8004CC10; // type:func ps1 [H] Get180s inlined (1501), magic meter 3000/750//5
+Trick_Bail__6CBruce = 0x8004CED0; // type:func ps1 [H] Crowd_Ahh/Oww, Vibrate(8,1,150)
+Physics_StateTransition = 0x8004D048; // type:func ps1 [M] "WALL RIDE" 500 pts, fall-line 0x32C8
+DoOnRailPhysics__6CBruce = 0x80050D68; // type:func ps1 [M] rail gravity 0x32C8, 2633, 1000
+DoOnGroundPhysics__6CBruce = 0x80052828; // type:func ps1 [M] in-plane gravity 0x1964, 3000, 82/120/160/180/200
+DoInAirPhysics__6CBruce = 0x800543F8; // type:func ps1 [M] 3278/3547 + order
+DoFootPlantPhysics__6CBruce = 0x80055570; // type:func ps1 [M] "FOOTPLANT" 100 pts
+DoWallRidePhysics__6CBruce = 0x80055D24; // type:func ps1 [M] 9000, 116
+HandleJump__6CBruce = 0x80056B14; // type:func ps1 [M] "FASTPLANT"/"NOLLIE", 250/200 pts, 2500
+HandleContinuousSounds__6CBruce = 0x80058E3C; // type:func ps1 [M] 28 shared sfx ids/volumes
+DoPhysics__6CBruce = 0x80059BEC; // type:func ps1 [M] a debug string, HandleBraking/HandleTimer constants inlined here
+Vibrate__6CBruceiii = 0x8005C690; // type:func ps1 [H] Trick_Bail calls (this, 8, 1, 150)
+Crowd_Cheer = 0x8003A2E4; // type:func ps1 [M] Trick_Land -> (mLandedTotal)
+Crowd_Oww = 0x8003A310; // type:func ps1 [M] Trick_Bail, score == 0 branch
+Crowd_Ahh = 0x8003A334; // type:func ps1 [M] Trick_Bail, score != 0 branch
+TrickMessageRefresh__10CPanelData = 0x80045A70; // type:func ps1 [M] Trick_Land(&mPanelData), "%s + %s"
+Panel_Land = 0x80046368; // type:func ps1 [M] Trick_Land call order
+// Panel (HUD) - string anchors
+DisplayTapesSkate = 0x80044150; // type:func ps1 [M]
+DisplayTime = 0x80044A84; // type:func ps1 [M] "%ld=%02ld"
+Panel_ReplayInstructions = 0x80044F78; // type:func ps1 [M]
+Panel_Display = 0x800453F0; // type:func ps1 [M]
+Panel_Tape = 0x80045870; // type:func ps1 [M]
+Panel_GoalCounter = 0x800459B8; // type:func ps1 [M] "%d OF 5 %s"
+// Triggers / powerups - unique string literal shared with one PS1 function
+Trig_ExecuteRestart = 0x8005EDD0; // type:func ps1 [M] "RE_2P"
+TakeEffect__8CPowerUpP6CBruce = 0x80066D94; // type:func ps1 [M] "Bonus 100/200/500"
+
+// --- data
+GGame = 0x800DE7A0; // ps1 [H] game mode, Trick_Land/Bail/Vibrate test == 7 (HORSE)
+XFrames = 0x800DE994; // ps1 [H] frame counter read by PingPong
+gPhysicsFrameTime = 0x800F5668; // manual [M] float 1/30, read by physics, no direct stores found
+
+// --- GCC 2.x vtables ({0,0} header, then {delta/index, pfn} 8-byte entries).
+// [V] = slot position in a vtable whose layout matches the PS1 __vt_ table
+// (same slot count, same base-class slots shared with CBody), plus size check.
+// Destructors are named __dt__<len><Class> (GCC's _._<len><Class> is not a C identifier).
+__vt_5CItem = 0x8001B4A0; // [H] stored by _._5CItem/_._5CBody/_._6CSuper chains
+__vt_6CSuper = 0x8001B420; // [H] stored first by __dt__6CSuper, which then chains to CBody/CItem
+__vt_5CBody = 0x8001B460; // [H]
+__vt_6CBruce = 0x8001B4E8; // [V] slots Die/AI/DoLightingSetup/Hit/DeleteStuff own, EveryFrame = CBody's (as PS1)
+__vt_9CPlatform = 0x8001CB18; // [V] 10 slots, own Hit (160 B = PS1) + GetVariable (56 B = PS1)
+__vt_4CCar = 0x8001CFC0; // [V] ExecuteCommand is an 8-byte stub (= PS1), SetVariable = CBaddy's
+__vt_16CScriptOnlyBaddy = 0x8001D288; // [V] own AI/ExecuteCommand/SetVariable, CBaddy==GetVariable
+__vt_6CBaddy = 0x8001D2E0; // [V] AI/Hit/DeleteStuff = CBody's (as PS1)
+__vt_8CPowerUp = 0x8001CD18; // [V] TU of TakeEffect__8CPowerUpP6CBruce, own Die/AI/DeleteStuff
+__vt_7CCamera = 0x8001DF68; // [M] only AI overridden, AI's call skeleton = PS1 CCamera==AI (see camera block)
+__vt_6CMedal_maybe = 0x800207E0; // [L] TU references "skmedals", DeleteStuff 8 B stub (= PS1)
+__dt__5CItem = 0x8004B498; // type:func [H] vtable slot 1 of __vt_5CItem
+__dt__5CBody = 0x8004B330; // type:func [H] sets __vt_5CBody, deletes shadow bit, chains to CItem
+__dt__6CSuper = 0x8004A11C; // type:func [H] 5x Mem_Delete then CBody/CItem chain (PS1 4x)
+Die__5CBody = 0x8004AEF0; // type:func [V] 56 B (PS1 60)
+Hit__5CBodyiRC7CVectori = 0x8004AED8; // type:func [V] 8 B stub (= PS1)
+DeleteStuff__5CBody = 0x8004B5A0; // type:func [V] 8 B stub
+DoLightingSetup__5CBody = 0x8004B5A8; // type:func [V] 8 B stub
+EveryFrame__5CBody = 0x8004B5B0; // type:func [V] 8 B stub
+AI__5CBody = 0x8004B5B8; // type:func [V] 8 B stub
+__dt__6CBruce = 0x8004C688; // type:func [V] calls __dt__6CSuper
+Die__6CBruce = 0x8004C544; // type:func [V] 68 B (= PS1)
+AI__6CBruce = 0x8004BE0C; // type:func [V] 832 B (PS1 1220)
+DoLightingSetup__6CBruce = 0x8004C644; // type:func [V] 8 B (= PS1)
+Hit__6CBruceiRC7CVectori = 0x8004C534; // type:func [V] 8 B (= PS1)
+DeleteStuff__6CBruce = 0x8004C53C; // type:func [V] 8 B (= PS1)
+__dt__9CPlatform = 0x80065AB8; // type:func [V] 124 B (PS1 128)
+AI__9CPlatform = 0x8006430C; // type:func [V] 1440 B (PS1 1448)
+Hit__9CPlatformiRC7CVectori = 0x80065A18; // type:func [V] 160 B (= PS1)
+ExecuteCommand__9CPlatformUs = 0x80064A9C; // type:func [V] 2164 B (PS1 2028)
+SetVariable__9CPlatformUs = 0x80065310; // type:func [V] 440 B (PS1 456)
+GetVariable__9CPlatformUs = 0x800658C0; // type:func [V] 56 B (= PS1)
+__dt__4CCar = 0x80070C78; // type:func [V] 100 B (= PS1)
+AI__4CCar = 0x800706B8; // type:func [V] 1420 B (PS1 1300)
+ExecuteCommand__4CCarUs = 0x80070C4C; // type:func [V] 8 B (= PS1)
+__dt__16CScriptOnlyBaddy = 0x800722EC; // type:func [V]
+AI__16CScriptOnlyBaddy = 0x8007241C; // type:func [V]
+ExecuteCommand__16CScriptOnlyBaddyUs = 0x80072760; // type:func [V]
+SetVariable__16CScriptOnlyBaddyUs = 0x800729C0; // type:func [V] 28 B (PS1 32)
+__dt__6CBaddy = 0x80072D84; // type:func [V]
+Die__6CBaddy = 0x80072D38; // type:func [V] 76 B (= PS1)
+ExecuteCommand__6CBaddyUs = 0x80070CE0; // type:func [V]
+SetVariable__6CBaddyUs = 0x80071C88; // type:func [V]
+GetVariable__6CBaddyUs = 0x80071FA4; // type:func [V]
+__dt__8CPowerUp = 0x8006733C; // type:func [V] 108 B (PS1 104)
+Die__8CPowerUp = 0x80067238; // type:func [V]
+AI__8CPowerUp = 0x800670E8; // type:func [V] 220 B (PS1 1148 - THPS1 pickups are simpler)
+DeleteStuff__8CPowerUp = 0x800672A0; // type:func [V] 76 B (PS1 80)
+__dt__7CCamera = 0x80079448; // type:func [M] vtable slot 1, chains to __dt__5CBody
+AI__7CCamera = 0x800766E4; // type:func [M] 3180 B (PS1 2676), callee skeleton below
+
+// --- math / vector helpers, identified by reading the N64 asm [H]
+// (EoR's port replaced PS1 GTE/asm helpers with float code; names = PS1 callers' names)
+Mips_FixMul = 0x80022E14; // type:func [H] (a*b)>>12 via float (a * b*2^-24 * 4096)
+Mips_CVecDotProd = 0x80022E54; // type:func [H] int3 . int3, /4096 via float
+M3dMaths_SquareRoot0 = 0x800233B8; // type:func [H] int sqrt via sqrt.s
+M3dUtils_NormaliseVector = 0x80022964; // type:func [H] in-place, result scaled to 4096
+TransMatrix = 0x800230FC; // type:func [H] MATRIX.t[3] (+0x14) = v
+TransposeMatrix = 0x800230A8; // type:func [H] 3x3 short transpose
+Rnd__Fi = 0x80049D60; // type:func [H] 3-word LCG state at 0x800FA970, returns (r16*n)>>16
+__mi__FRC7CVectorT0 = 0x80046FBC; // type:func [H] returns a-b (88 B = PS1)
+__ne__7CVectorRC7CVector = 0x8004706C; // type:func [H] component-wise !=
+Length__C7CVector = 0x800474C8; // type:func [H] (v>>12) squared, summed, M3dMaths_SquareRoot0
+// EoR's N64 port turned PS1 GTE macros into real functions (int->float->int):
+gte_stlvnl = 0x80043264; // type:func [M] 36 B store, same trio+sqrt in Length__C7CVector and Utils_CalcUnit (= PS1 sequence)
+gte_sqr0 = 0x80043288; // type:func [M] 68 B
+gte_ldlvl = 0x800433E4; // type:func [M] 36 B load
+gte_op12 = 0x80042C70; // type:func [M] OrientToNormal calls (NormaliseVector, ldopv1, ldopv2, op12, stlvnl) x2 = PS1 exactly, AlignToFallLine too
+gte_ldopv2 = 0x8004356C; // type:func [M] same evidence
+gte_ldopv1 = 0x80043590; // type:func [M] same evidence
+Utils_CalcUnit__FR7CVectorRC7CVector = 0x80049C20; // type:func [M] gte_ldlvl,gte_sqr0,gte_stlvnl,M3dMaths_SquareRoot0 = PS1 call sequence, UTILS TU (next to Rnd)
+
+// --- CBruce / physics, call-graph + asm review (docs/symbols.md "Round 2")
+RunAnim__6CSuperiiii = 0x8004A204; // type:func [M] directly after __dt__6CSuper (PS1 OB order), 272 B (PS1 284), 2nd half of inlined Debug_RunAnim*
+MaybeFlipAnimationTransition__6CBruce = 0x8004D2D4; // type:func [M] 196 B (PS1 260), always called right before RunAnim (= inlined Debug_RunAnim)
+M3dColij_InitLineInfo = 0x8005CCD8; // type:func [H] clears a line-info struct, bumps collision stamp 0x800D7234
+M3dZone_LineToItem = 0x8005DF8C; // type:func [M] always follows InitLineInfo
+MoveOriginTo__6CBruceiii = 0x8004D718; // type:func [M] exactly 6 InitLineInfo/LineToItem pairs (= PS1)
+DoHandPlantPhysics__6CBruce = 0x80055A14; // type:func [M] Bail,Bail,..,Physics_StateTransition,Trick_Land (= PS1), between DoOnRail and DoFootPlant in the inlined HandlePhysicsStates switch
+HandleStickToRail__6CBruce = 0x8004E0B0; // type:func [M] DoPhysics order, "Handplant" = StartHandPlant inlined (2892 B vs PS1 684)
+Bail__6CBrucei13ELimitBailVel = 0x8004D398; // type:func [M] Trick_Bail, Physics_StateTransition, dot/sqrt (= PS1 head)
+HandleSpin__6CBruce = 0x8004FD90; // type:func [M] DoPhysics order, RotateHeadingAndVelocity x2 then dot/sqrt (= PS1)
+RotateHeadingAndVelocity__6CBruceiii = 0x80058594; // type:func [M] called twice by HandleSpin, also HandleJump/DoWallRide
+HandleKick__6CBruce = 0x80057EAC; // type:func [M] DoPhysics order before HandleJump, 1768 B (PS1 1820)
+BoardOn__6CBruce = 0x8004C774; // type:func [M] 88 B (PS1 96), DoPhysics order after HandleStickToRail
+HandleBailStates__6CBruce = 0x80059AA0; // type:func [M] DoPhysics tail order (PS1 - HandleBailStates, HandlePlayerCollisions)
+// CBruce::AI callee sequence matches PS1 1:1 (InCompetitionIntro..Font_String):
+InCompetitionIntro__7CCamera = 0x80079218; // type:func [M]
+Video_Record = 0x8006CDAC; // type:func [M]
+Video_Playback = 0x8006C7D4; // type:func [M]
+ReadAnalogueInput__6CBruce = 0x8005BDA8; // type:func [M] 88 B
+HandleWater__6CBruce = 0x8004C14C; // type:func [M]
+M3dColij_LineToSphere = 0x8005CA90; // type:func [M] called twice (= PS1)
+Font_String = 0x8004BA74; // type:func [M] last call (= PS1, after sprintf)
+
+// --- asset loading leads (priority 3)
+Trig_LoadTRG = 0x8005F02C; // type:func [M] only function referencing ".trg", TRIG TU, loads via 0x80084B2C (asset fetch+unpack, not FileIO as on PS1)
+
+// --- camera (CAMERA.cpp), from CCamera::AI's callee skeleton, which matches PS1:
+//   CM_Normal, MoveToDesiredPos, Utils_CalcAim, CM_Normal, CM_NoBigAir,
+//   CM_CompetitionIntro, ..., MoveToDesiredPos, Utils_CalcAim,
+//   3x (sine, QFromYRot/XRot/ZRot, quat multiply), LoadIntoMikeCamera
+CM_Normal__7CCamera = 0x80077584; // type:func [M] 1244 B (PS1 1488), called twice by AI (= PS1)
+MoveToDesiredPos__7CCameraUi = 0x80075694; // type:func [M] 2772 B (PS1 3368)
+Utils_CalcAim__FR8CSVectorRC7CVectorT1 = 0x80047D40; // type:func [M] 448 B (PS1 356), follows MoveToDesiredPos twice (= PS1)
+CM_NoBigAir__7CCamera = 0x80077EFC; // type:func [M] 900 B (PS1 1116)
+CM_CompetitionIntro__7CCamera = 0x80077A60; // type:func [M] 1180 B (PS1 1352)
+LoadIntoMikeCamera__7CCamera = 0x80073EA0; // type:func [M] last call of AI (= PS1), 600 B (PS1 644)
+QFromYRot__Fs = 0x800677F8; // type:func [M] after 1st sine (PS1 order Y, X, Z)
+QFromXRot__Fs = 0x800676D0; // type:func [M]
+QFromZRot__Fs = 0x80067920; // type:func [M]
+__ml__FRC5CQuatT0 = 0x800673B0; // type:func [M] quaternion product, applied after each QFrom*Rot (PS1 `q * QFrom..`)
+
+// --- Q7 resume pass (2026-10-10 morning). Same tags as above. No colons or semicolons in comments.
+// PSX libgte matrix helpers, EoR float rewrites. Call sequences match PS1 exactly in
+// RotateHeadingAndVelocity (RotMatrixYXZ, MulMatrix, FRU.., TransposeMatrix, RotMatrixYXZ, MulMatrix, MulMatrix)
+// and TempTransform (TransMatrix x2, ApplyMatrixLV, RotMatrixYXZ, MulMatrix, ApplyMatrixLV)
+RotMatrixYXZ = 0x80022598; // type:func [M] call-sequence position in 3 PS1-aligned callers
+MulMatrix = 0x80022FCC; // type:func [M] same evidence
+ApplyMatrixLV = 0x800226A0; // type:func [M] same evidence, also camera callers
+// CBruce, MECH/PHYSICS TU
+BoardOff__6CBruce = 0x8004C7CC; // type:func [H] twin of BoardOn, ORs the 3 board-part bits into the hide mask +0x28C (BoardOn clears them), Bail calls it
+TempTransform__6CBruce = 0x8004C880; // type:func [M] TransMatrix,TransMatrix,ApplyMatrixLV,RotMatrixYXZ,MulMatrix,ApplyMatrixLV = PS1, sits right before Trick_TakeOff (= PS1 order)
+HandleBailPerpendicular__6CBruceG7SVECTOR = 0x8004EBFC; // type:func [M] PS1 order slot after HandleStickToRail, callers DoOnGround+DoInAir only (= PS1), calls Bail
+HandleTricksNew__6CBruce = 0x8004F13C; // type:func [M] DoPhysics slot after HandleJump (= PS1), 3156 B with UpdateButtons/MaybeTriggerTrick/UpdateScript inlined, reads trick table 0x800D63F8
+HandleLeaningBail__6CBruceG7SVECTOR_maybe = 0x8005427C; // type:func [L] PS1 order slot between DoOnGround and DoInAir, only caller DoInAir (= PS1)
+Game_Over_maybe = 0x80082660; // type:func [L] DoPhysics position of inlined HandleTimer (SFX_PlayX then Game_Over = PS1)
+// CVector / CSVector operators (VECTOR.cpp), identified from the asm [H] or asm + arg order [M]
+__pl__FRC7CVectorT0 = 0x80047014; // type:func [H] returns a+b
+__ml__FRC7CVectorRCi = 0x80046F58; // type:func [H] returns v*n (vector arg first)
+__ml__FRCiRC7CVector = 0x80046EF4; // type:func [M] returns n*v
+__dv__FRC7CVectorRCi = 0x80046E04; // type:func [H] returns v/n (3 divs)
+__rs__FRC7CVectorRCi = 0x80046DAC; // type:func [H] returns v>>n
+__ls__FRC7CVectorRCi = 0x80046D54; // type:func [H] returns v<<n
+__apl__7CVectorRC7CVector = 0x800472C0; // type:func [H] +=
+__ami__7CVectorRC7CVector = 0x80047288; // type:func [H] -=
+__aml__7CVectorRCi = 0x80047244; // type:func [H] *=
+__als__7CVectorRCi = 0x80047124; // type:func [H] <<=
+__ars__7CVectorRCi = 0x8004715C; // type:func [H] >>=
+__amd__7CVectorRC9CFriction = 0x800470E0; // type:func [M] v -= v>>friction byte per axis
+__eq__7CVectorRC7CVector = 0x800470A8; // type:func [H]
+KillSmall__7CVector = 0x800472F8; // type:func [H] zero components with abs le 1
+Normalize__7CVector = 0x8004733C; // type:func [M] >>12, gte trio, sqrt, 3 divs (PS1 calls Length)
+__apl__8CSVectorRC8CSVector = 0x80046C1C; // type:func [H] short +=
+Mask__8CSVector = 0x80046D00; // type:func [H] and 0xFFF per axis
+KillSmall__8CSVector = 0x80046CB0; // type:func [H]
+__amd__8CSVectorRC9CFriction = 0x80046A30; // type:func [M]
+__mi__FRC8CSVectorT0 = 0x80046BE4; // type:func [H]
+__ml__FRCiRC8CSVector = 0x80046BA0; // type:func [M]
+__rs__FRC8CSVectorRCi = 0x80046AB8; // type:func [H]
+__eq__8CSVectorRC8CSVector = 0x800469F8; // type:func [H]
+__ne__8CSVectorRC8CSVector = 0x800469BC; // type:func [H]
+// Memory. EoR replaced PS1 MEM.cpp with a locked heap (mutex = message queue at heap+0x14)
+gMainHeap = 0x800EA110; // manual [H] heap object passed to every Heap_* call
+memset = 0x8009E0F0; // type:func [H] (dst, byte, n), 8-byte fast path, returns dst
+Heap_Alloc = 0x8009E6B4; // type:func manual [H] (heap, size, align), lock, Heap_AllocUnlocked, unlock
+Heap_AllocUnlocked = 0x8009E728; // type:func manual [H]
+Heap_AllocTop_maybe = 0x8009E8F0; // type:func manual [L] second allocation path used by Mem_New flag 0
+Heap_Free = 0x8009ECF8; // type:func manual [H] (heap, ptr), lock, Heap_FreeUnlocked, unlock
+Heap_FreeUnlocked = 0x8009ED5C; // type:func manual [H]
+Heap_Realloc = 0x8009E524; // type:func manual [M] lock, alloc+copy+free helper, unlock
+Heap_Init_maybe = 0x8009E3A0; // type:func manual [L] memset + osCreateMesgQueue + seed message
+MainHeap_Alloc = 0x8009E30C; // type:func manual [H] Heap_Alloc(gMainHeap, n, 4)
+MainHeap_Free = 0x8009E334; // type:func manual [H] Heap_Free(gMainHeap, p), 45 callers
+Mem_Delete = 0x8005EA48; // type:func ps1 [M] null check, owner check, Heap_Free(gMainHeap), called by all destructors (__dt__6CSuper 5x = PS1 Mem_Delete pattern)
+Mem_New = 0x8005EAB4; // type:func ps1 [M] (size, flag) - Heap_Alloc align 8 or Heap_AllocTop
+Mem_Shrink_maybe = 0x8005EA18; // type:func ps1 [L] wraps Heap_Realloc
+
+UprightSideways__6CBruce = 0x80058D54; // type:func [M] gte_ldopv1,ldopv2,op12,stlvnl,dot,RotMatrixYXZ,MulMatrix = PS1 head, only caller DoInAir (= PS1), PHYSICS order after AlignToFallLine (= PS1)
+// --- asset archives (EoR N64 code, manual names). Format lead in the private development notes
+// An archive object is {u32 *dir (+0), u32 romBase (+4), ptr (+8), stream (+0xC)}. dir[0] = count,
+// dir[1..] = entry offsets, entry i spans dir[i+1]..dir[i+2], data may be ERZ-packed.
+Archive_EntryOffset = 0x8009B988; // type:func manual [H] returns dir[i+1]
+Archive_LoadEntry = 0x8009B7D8; // type:func manual [H] (arc, dirobj, i, align) - size from offset delta, Heap_Alloc, Rom_ReadUnpack
+Archive_LoadSubDir = 0x8009B898; // type:func manual [M] reads a 4-byte count then count*4+8 directory of entry i (nested archive)
+Archive_Open = 0x8009B650; // type:func manual [M] (arc, rom) - Archive_Close, read header, Archive_ReadDir
+Archive_Close = 0x8009B6C0; // type:func manual [M] Heap_Free of the directory
+Archive_ReadDir = 0x8009B6F4; // type:func manual [M]
+Rom_ReadUnpack = 0x800B2CF0; // type:func manual [M] (stream, rom, size, dst) - PI read, Erz_Unpack or memcpy
+strcmp = 0x8009FD8C; // type:func [H] returns 0, 1 or -1
+Asset_NameEquals = 0x800420D8; // type:func manual [H] case-insensitive compare, returns 1 if equal
+gTrgNameTable = 0x800E8D18; // manual [H] {char *name, int index} pairs, -1 terminated. 9 level .trg (SkBurn_T.trg ... SkWare_T.trg)
+gPsxNameTable = 0x800E8A58; // manual [H] {char *name, int index} pairs, -1 terminated. 80 .psx (levels with _2 _L _O variants, skaters + _FE, cars, Items, SkMedals)
+gTrgArchive = 0x800E8CE0; // manual [M] archive object passed by Trig_LoadTRG
+TrgArchive_FindIndex = 0x80084AA8; // type:func manual [H] strcmp scan of gTrgNameTable
+TrgArchive_Load = 0x80084B2C; // type:func manual [H] FindIndex then Archive_LoadEntry align 8
+TrgArchive_Open = 0x80084B88; // type:func manual [M] Archive_Open with the root offset from 0x800F566C
+TrgRoot_EntryOffset = 0x80084BD4; // type:func manual [H] copy of Archive_EntryOffset
+PsxArchive_FindIndex = 0x800847E8; // type:func manual [H] Asset_NameEquals scan of gPsxNameTable
+PsxArchive_Load = 0x8008486C; // type:func manual [M] FindIndex, LoadSubDir, LoadEntry, free dir (called by Spool_Continue)
+PsxArchive_LoadIndex = 0x80084914; // type:func manual [M] same without the name lookup
+PsxArchive_Open = 0x800849B0; // type:func manual [M]
+PsxRoot_EntryOffset = 0x800849FC; // type:func manual [H] copy of Archive_EntryOffset
+// SPOOL.cpp (level/model .psx streaming). PS1 order differs (THPS1 file), names by callee shape
+Spool_PSX = 0x8006278C; // type:func ps1 [M] Utils_CompareStrings region scan then name + ".psx" (LoadNameExt inlined), callers are the level loaders and ExecuteCommandList
+Spool_Continue = 0x80062A90; // type:func ps1 [M] ClearRegion, PsxArchive_Load, ProcessNewPSX (PS1 FileIO_Open/Load replaced)
+Spool_Sync = 0x80062EBC; // type:func ps1 [M] only calls Spool_Continue (= PS1)
+Spool_GetEnvIndex = 0x80062F18; // type:func ps1 [M] 48 B (= PS1)
+ClearRegion = 0x80062548; // type:func ps1 [M] Mem_Delete, M3dZone_FreePSX, DetachOldEnviro, RemoveUnusedTextures shape, 5 callers
+Spool_ClearEnvironmentRegions = 0x8006305C; // type:func ps1 [M] ClearRegion x2 then RemoveUnusedTextures (= PS1)
+Spool_ClearAllPSXs = 0x80063160; // type:func ps1 [M] Spool_Sync, ClearEnvironmentRegions, ClearRegion, RemoveUnusedTextures (= PS1)
+Spool_ClearPSX = 0x800631CC; // type:func ps1 [M] FindRegion inlined x2 then ClearRegion (= PS1)
+Spool_FindRegion = 0x80063294; // type:func ps1 [M] 104 B (= PS1), Utils_CompareStrings, called by CItem InitItem (= PS1)
+Spool_RemoveUnusedTextures = 0x800620D8; // type:func ps1 [M] last call of ClearRegion and ClearEnvironmentRegions (= PS1)
+ProcessNewPSX_maybe = 0x800621C4; // type:func ps1 [L] called by Spool_Continue after the load
+DetachOldEnviro_maybe = 0x80062488; // type:func ps1 [L] called by ClearRegion
+M3dZone_FreePSX_maybe = 0x8005E32C; // type:func ps1 [L] called by ClearRegion, M3DZONE TU
+// TRIG.cpp, PS1 order + callee shape
+Trig_ParseTRGFile = 0x8006140C; // type:func ps1 [M] last call of Trig_LoadTRG, Trig_CreateObject + Mem_New (CreateCommandPoint inlined) (= PS1)
+Trig_CreateObject = 0x8005F2F8; // type:func ps1 [M] news CScriptOnlyBaddy, CPlatform, CCar (= PS1), first call of Trig_SendPulseToNode
+Trig_SendPulseToNode = 0x8005F634; // type:func ps1 [M] Trig_CreateObject then ExecuteCommandList (= PS1)
+Trig_SendPulse = 0x80061BC8; // type:func ps1 [M] only calls SendPulseToNode (= PS1), 88 B (PS1 92)
+ExecuteCommandList = 0x800601A0; // type:func ps1 [M] jump-table interpreter, Mem_Delete (RemoveDualBuffer), Utils_CompareStrings (SetRestart), Mess_ calls (= PS1)
+SendKillFromNode = 0x8005F974; // type:func ps1 [M] GetLinksPointer x2, SendPulseToNode, 4 virtual Die/Hit (KillInList inlined) (= PS1)
+SendVisibleFromNode_maybe = 0x8005F798; // type:func ps1 [L] GetLinksPointer then 0x800352A4 (Spool_FindEnviroItem?)
+SendSuspendOrActivate_maybe = 0x8005FD44; // type:func ps1 [L] Suspend x2, UnSuspend
+SkipCommand_maybe = 0x8005FE98; // type:func ps1 [L] 776 B leaf (PS1 808)
+Trig_SetRestart = 0x80061CC4; // type:func ps1 [M] Trig_GetPosition + Utils_CompareStrings (= PS1), 184 B (PS1 172)
+Trig_TriggerCommandPoint = 0x80061D7C; // type:func ps1 [M] 184 B (= PS1), only calls ExecuteCommandList (= PS1)
+Trig_ResetCPCollisionFlags = 0x80061E7C; // type:func ps1 [M] DoPhysics (CheckForTriggers inlined) calls it between InitLineInfo and LineToItem (= PS1)
+Trig_ResetCPExecutedFlags = 0x80061E34; // type:func ps1 [M] DoPhysics, after LineToItem (= PS1)
+Trig_DeleteTrigFile_maybe = 0x80061F3C; // type:func ps1 [L] frees through the TRG archive
+FudgeAngles = 0x8005EB20; // type:func ps1 [M] Utils_RotateY x2 (= PS1), called by Trig_ExecuteRestart
+Utils_RotateY = 0x80047530; // type:func ps1 [M] FudgeAngles calls it twice (= PS1), 4096-scaled sin/cos
+// OB.cpp, PS1 order + sizes
+__nw__5CItemUi = 0x8004B514; // type:func ps1 [H] 92 B (= PS1), Mem_New then zero fill
+__dl__5CItemPv = 0x8004B4F8; // type:func ps1 [M] Mem_Delete wrapper, 28 B (PS1 32)
+InitItem__5CItemPc = 0x8004B468; // type:func ps1 [M] 48 B (= PS1), calls Spool_FindRegion (= PS1)
+__6CSuper = 0x8004AE80; // type:func ps1 [M] calls __5CBody, first call of the CBruce ctor
+__5CBody = 0x8004A08C; // type:func ps1 [M] 144 B (PS1 136)
+__6CBruce = 0x8004B77C; // type:func ps1 [M] __6CSuper first, FRUVectorsFromRotMatrix, 760 B (PS1 1024)
+UnSuspend__5CBody = 0x8004B0BC; // type:func ps1 [M] unlinks when flag 0x52 bit0 set
+Suspend__5CBody = 0x8004B13C; // type:func ps1 [M] virtual DeleteStuff call, relinks into list 0x800D6184, sets flag bit0
+DeleteFrom__5CBodyPP5CBody = 0x8004B264; // type:func ps1 [M] calls UnSuspend (= PS1)
+InterleaveAI__5CBody = 0x8004A544; // type:func ps1 [M] 856 B (PS1 896), UpdateFrame then virtual EveryFrame/AI calls
+UpdateFrame__6CSuper_maybe = 0x8004A314; // type:func ps1 [L] first call of InterleaveAI, calls RunAnim
+Utils_CrapDist = 0x80047C34; // type:func ps1 [M] called twice back to back in Ob_AI-family (= PS1)
+// constructors, found by the vtable they store (n64db drefs) [H] = vtable store read in the asm
+__6CBaddy = 0x80072DFC; // type:func ps1 [H] stores __vt_6CBaddy, called first by the CScriptOnlyBaddy and CCar ctors
+__16CScriptOnlyBaddyPsi = 0x800721DC; // type:func ps1 [H] stores __vt_6CBaddy then __vt_16CScriptOnlyBaddy, 1st object type in Trig_CreateObject (= PS1)
+__9CPlatformPsi = 0x80065BF4; // type:func ps1 [H] stores __vt_9CPlatform, 2nd object type in Trig_CreateObject (= PS1)
+__4CCarPsii = 0x8006FBE0; // type:func ps1 [H] stores __vt_4CCar, InitItem with "c_taxi"/"c_police", 3rd type in Trig_CreateObject (= PS1)
+__7CCameraP5CBodyUs = 0x80073AE0; // type:func ps1 [H] stores __vt_7CCamera, __5CBody first, 4x __6CamPos, LoadIntoMikeCamera
+__6CMedal_maybe = 0x800965D0; // type:func ps1 [L] stores __vt_6CMedal_maybe
+__dt__6CMedal_maybe = 0x80097148; // type:func ps1 [L] second function storing __vt_6CMedal_maybe
+// CAMERA.cpp, PS1 order + callee shape
+Shake__7CCameraRC7CVector10EShakeType = 0x80073D68; // type:func ps1 [M] right after the ctor, 312 B (PS1 292)
+ResetOrientation__7CCamera = 0x800740F8; // type:func ps1 [M] ApplyMatrixLV, CM_Normal, LoadIntoMikeCamera = PS1 exactly, after LoadIntoMikeCamera (= PS1 order)
+ReactToCollision__7CCamera = 0x80074254; // type:func ps1 [M] 5184 B (PS1 5448), QToM then line checks (= PS1), before MoveToDesiredPos (= PS1 order)
+TweakMenu__7CCamera = 0x80076168; // type:func ps1 [M] debug menu ("Pos A"/"Pos B"), between MoveToDesiredPos and AI (= PS1 order), calls DisplayLabels then Display (= PS1)
+Display__6CamPosUsUsUcUcUc = 0x80078778; // type:func ps1 [M] "Follow"/"Fixed"/"quaternion" values, called by TweakMenu
+DisplayLabels__6CamPosUsUsUcUcUc = 0x80078A1C; // type:func ps1 [M] "Tripod"/"Stick Length" labels, called by TweakMenu
+__6CamPos = 0x8007919C; // type:func ps1 [M] inits three identity quaternions (w 0x1000), called 4x by the CCamera ctor
+__dt__6CamPos = 0x80079178; // type:func ps1 [M] delete-flag dtor, called 4x by __dt__7CCamera
+StartCompetitionIntro__7CCamera = 0x80079228; // type:func ps1 [M] sets mode 0x17 then one call (Competition_ResetMarquee = PS1), 36 B (PS1 40)
+Competition_ResetMarquee_maybe = 0x8008130C; // type:func ps1 [L] only call of StartCompetitionIntro
+// RAIL.cpp (TU at 0x80068800). THPS1 builds a CRail (0x28 B) when a rail node gets a pulse
+gRailList = 0x800DC5C0; // manual [H] head of the CRail list (links at +0x1C/+0x20)
+__5CRaili = 0x80068800; // type:func ps1 [M] Trig_SendPulseToNode does MainHeap_Alloc(0x28) then this (new CRail(node)), GetLinksPointer + GetPosition x2 (= PS1 ctor head)
+Rail_Update = 0x80068988; // type:func ps1 [M] links, GetPosition x2, LineLineClosestPoints, sub, NormaliseVector, dot (= PS1), called from the main loop
+M3dUtils_LineLineClosestPoints__FP7CVectorN40PiT0T5 = 0x8005D674; // type:func ps1 [M] 1804 B (PS1 1964), only caller Rail_Update (= PS1)
+__dt__5CRail = 0x80068E6C; // type:func ps1 [H] unlinks from gRailList, delete flag
+Rail_Init_maybe = 0x80068ED4; // type:func ps1 [L] deletes every CRail, 64 B (PS1 72)
+Rail_DeleteAll_maybe = 0x80068F14; // type:func ps1 [L] deletes every CRail then clears gRailList, 76 B (PS1 84)
+Rail_NextNode_maybe = 0x80068F60; // type:func ps1 [L] picks the link whose node type is 10 (rail), DoOnRailPhysics calls it 4x after GetLinksPointer
+// PANEL.cpp (HUD, trick text, score), PS1 order + callee shape. Free functions keep the plain PS1 base name
+DisplayScore = 0x8004438C; // type:func ps1 [M] "Yowza!", Career_Got, Panel_Tape, PS1 order slot before DisplayHolding
+DisplayHolding = 0x80044750; // type:func ps1 [M] multiplier strings " x%d.5"/" x%d", between DisplayScore and DisplayTime (= PS1 order)
+DisplayOutOfBounds = 0x80044DAC; // type:func ps1 [M] after DisplayTime (= PS1 order), called by Panel_Display
+DisplayTrick__10CPanelDataP6CBruceUsUs = 0x80045030; // type:func ps1 [M] last PANEL slot before Panel_Display (= PS1 order), called by Panel_Display, 960 B (PS1 552)
+Land__10CPanelData = 0x80045CDC; // type:func ps1 [M] strcpy x3 then Video_HighlightEnd (= PS1), only call of Panel_Land
+Bail__10CPanelData = 0x80045E38; // type:func ps1 [M] Video_HighlightEnd (= PS1), only call of Panel_Bail
+OutOfBounds__10CPanelData = 0x80046034; // type:func ps1 [M] Rnd then one call (= PS1), after Bail (= PS1 order)
+Trick__10CPanelDataPciii = 0x800460B8; // type:func ps1 [M] "Total %d Last %s" debug text + TrickMessageRefresh, reached from Trick_Trick
+TrickMessage__10CPanelData = 0x800461F0; // type:func ps1 [M] only calls TrickMessageRefresh, 56 B (PS1 92)
+Panel_Trick_maybe = 0x800463CC; // type:func [L] 28 B wrapper Trick_Trick -> Trick__10CPanelData (PS1 calls Trick directly)
+Panel_HoldTrick = 0x8004638C; // type:func ps1 [M] TrickMessageRefresh wrapper, DoHandPlantPhysics calls it (Trick_HoldTrick inlined = PS1)
+Panel_TakeOff = 0x800463E8; // type:func ps1 [M] called by Trick_TakeOff (= PS1), calls Video_HighlightStart (= PS1)
+Panel_PlayerInit = 0x8004641C; // type:func ps1 [M] DoPhysics position of inlined Trick_PlayerInit, 32 B (PS1 36)
+Panel_Bail = 0x8004634C; // type:func ps1 [M] Trick_Bail calls it, only call Bail__10CPanelData (= PS1)
+strcpy = 0x8009FD60; // type:func [H] byte copy loop, returns dst, Land__10CPanelData calls it 3x (= PS1 strcpy x3)
+Video_HighlightEnd = 0x8006A538; // type:func ps1 [M] called by Land and Bail of CPanelData (= PS1), VIDEO TU
+Video_HighlightStart = 0x8006D1A0; // type:func ps1 [M] called by Panel_TakeOff (= PS1), VIDEO TU
+// EoR thread helpers (recomp - every game thread starts in Thread_Entry, which jalr's the real entry stored at +0x1B4)
+Thread_Create = 0x8009FFD8; // type:func manual [H] Heap_Alloc stack, store entry/arg at +0x1B0..+0x1B8, osCreateThread(Thread_Entry)
+Thread_Entry = 0x800A00F4; // type:func manual [H] trampoline passed to osCreateThread, indirect call of the stored entry
+Thread_Destroy = 0x8009FF4C; // type:func manual [M] osStopThread, Heap_Free of the stack
+// propagation vetoes (asm review)
+// reject 0x8004C63C empty 8-byte stub called by Trick_Land, Trick_Bail and DoPhysics, not HandleFlips
+// reject 0x80024B98 16-byte setter of 3 bytes at +0x8C (RGB-like), not Video_Abs
+// reject 0x80024BA8 20-byte setter (+0x88 = frame+2), not Bit2_ConstructGrindSpark
+// reject 0x8005BE00 also called by DoOnGround and car code, calls a math helper only, not TweakRailScore
+// reject 0x800658F8 empty 8-byte stub, not CVector Length
+
+// >>> generated by tools/apply_names.py (call-graph propagation) - do not edit by hand
+SFX_PlayX = 0x80039E60; // type:func [C] ps1 SFX score 14.5 (runner-up 2.0) via Crowd_Ahh, Crowd_Cheer, Crowd_Oww
+SFX_PlayPos = 0x80039F88; // type:func [C] ps1 SFX score 3.5 (runner-up 1.0) via ExecuteCommand__16CScriptOnlyBaddyUs, ExecuteCommand__9CPlatformUs
+SFX_MIDIFadeIn_maybe = 0x8003A0DC; // type:func [C?] ps1 SFX score 2.4 (runner-up 0.0) via ExecuteCommandList, ExecuteCommand__6CBaddyUs
+SFX_MIDIFadeOut_maybe = 0x8003A0E4; // type:func [C?] ps1 SFX score 2.6 (runner-up 0.0) via ExecuteCommandList, ExecuteCommand__6CBaddyUs
+SFX_Stop_maybe = 0x8003A148; // type:func [C?] ps1 SFX score 2.0 (runner-up 0.0) via HandleContinuousSounds__6CBruce
+SFX_SetVoicePitch = 0x8003A178; // type:func [C] ps1 SFX score 3.5 (runner-up 1.5) via HandleContinuousSounds__6CBruce, TakeEffect__8CPowerUpP6CBruce
+Panel_Letter_maybe = 0x800462B8; // type:func [C?] ps1 PANEL score 2.0 (runner-up 0.0) via TakeEffect__8CPowerUpP6CBruce
+__mi__C7CVector = 0x80046D28; // type:func [C] ps1 VECTOR score 4.0 (runner-up 0.0) via DoFootPlantPhysics__6CBruce, DoOnRailPhysics__6CBruce
+Utils_LineOfSight_maybe = 0x80048E68; // type:func [C?] ps1 UTILS score 2.0 (runner-up 0.0) via GetVariable__6CBaddyUs
+Utils_CompareStrings_maybe = 0x80049034; // type:func [C?] ps1 UTILS score 2.0 (runner-up 0.0) via Trig_ExecuteRestart
+Utils_XZDist_maybe = 0x80049B4C; // type:func [C?] ps1 UTILS score 2.0 (runner-up 0.0) via GetVariable__6CBaddyUs
+FlipToVelocity__6CBruce = 0x8004BD2C; // type:func [C] ps1 MECH score 4.0 (runner-up 2.0) via DoInAirPhysics__6CBruce, DoOnGroundPhysics__6CBruce
+SFX_Grunt = 0x8004C3D8; // type:func [C] ps1 MECH score 4.0 (runner-up 0.0) via DoOnGroundPhysics__6CBruce, DoWallRidePhysics__6CBruce
+CVectorRotateToPlane_maybe = 0x8004D5B0; // type:func [C?] ps1 PHYSICS score 2.0 (runner-up 0.0) via DoWallRidePhysics__6CBruce
+AlignToFallLine__6CBrucei = 0x80058A94; // type:func [C] ps1 PHYSICS score 4.0 (runner-up 0.0) via DoOnGroundPhysics__6CBruce, DoWallRidePhysics__6CBruce
+OrientToNormal__6CBruce = 0x800598B8; // type:func [C] ps1 PHYSICS score 6.0 (runner-up 0.0) via DoInAirPhysics__6CBruce, DoOnGroundPhysics__6CBruce, DoWallRidePhysics__6CBruce
+RotMatrixFromFRUVectors__6CBruce = 0x8005BE8C; // type:func [C] ps1 PHYSICS score 5.5 (runner-up 0.0) via DoInAirPhysics__6CBruce, DoOnGroundPhysics__6CBruce, DoWallRidePhysics__6CBruce
+FRUVectorsFromRotMatrix__6CBruce = 0x8005BED8; // type:func [C] ps1 PHYSICS score 6.0 (runner-up 0.0) via DoOnGroundPhysics__6CBruce, DoWallRidePhysics__6CBruce, RotateHeadingAndVelocity__6CBruceiii
+ResetTrickBuffers__6CBruce_maybe = 0x8005C444; // type:func [C?] ps1 PHYSICS score 2.2 (runner-up 0.0) via ExecuteCommandList, Trick_TakeOff__6CBruce
+Trig_GetPosition = 0x800617B8; // type:func [C] ps1 TRIG score 6.0 (runner-up 1.0) via DoOnRailPhysics__6CBruce, ExecuteCommand__6CBaddyUs, ExecuteCommand__9CPlatformUs
+Trig_GetLinksPointer = 0x80061904; // type:func [C] ps1 TRIG score 4.0 (runner-up 1.0) via ExecuteCommand__6CBaddyUs, GetVariable__6CBaddyUs, TakeEffect__8CPowerUpP6CBruce
+SendSignalToNode_maybe = 0x80061B94; // type:func [C?] ps1 TRIG score 2.0 (runner-up 0.0) via ExecuteCommand__6CBaddyUs
+Platform_HandleBounce = 0x800654C8; // type:func [C] ps1 PLATFORM score 4.5 (runner-up 0.0) via DoInAirPhysics__6CBruce, DoOnGroundPhysics__6CBruce, Video_Playback
+Career_GiveTape_maybe = 0x80066224; // type:func [C?] ps1 CAREER score 2.0 (runner-up 0.0) via Panel_Tape
+Career_Got_maybe = 0x8006648C; // type:func [C?] ps1 CAREER score 2.9 (runner-up 0.0) via DisplayScore, ExecuteCommand__6CBaddyUs
+PowerUp_Create_maybe = 0x800671C4; // type:func [C?] ps1 POWERUP score 2.0 (runner-up 0.0) via ExecuteCommand__6CBaddyUs
+SetGravity__8CPowerUpii_maybe = 0x800672FC; // type:func [C?] ps1 POWERUP score 2.0 (runner-up 0.0) via ExecuteCommand__6CBaddyUs
+Video_SyncObsIfNeeded_maybe = 0x8006A994; // type:func [C?] ps1 VIDEO score 2.0 (runner-up 0.0) via Video_Playback
+Video_Start_maybe = 0x8006AB44; // type:func [C?] ps1 VIDEO score 2.0 (runner-up 0.0) via Video_Playback
+GetDataChunk_maybe = 0x8006B78C; // type:func [C?] ps1 VIDEO score 2.0 (runner-up 0.0) via Video_Playback
+Mess_Message = 0x8006EE1C; // type:func [C] ps1 MESS score 4.5 (runner-up 0.0) via Panel_GoalCounter, Panel_Tape, TakeEffect__8CPowerUpP6CBruce
+Mess_DeleteAll_maybe = 0x8006EEF0; // type:func [C?] ps1 MESS score 2.0 (runner-up 0.6) via TakeEffect__8CPowerUpP6CBruce
+Mess_SetRGB_maybe = 0x8006F1A8; // type:func [C?] ps1 MESS score 2.0 (runner-up 0.0) via DisplayTapesSkate, Panel_ReplayInstructions
+Mess_SetScale_maybe = 0x8006F23C; // type:func [C?] ps1 MESS score 2.0 (runner-up 1.0) via DisplayTapesSkate, Panel_ReplayInstructions
+Mess_SetTextJustify_maybe = 0x8006F274; // type:func [C?] ps1 MESS score 2.0 (runner-up 0.0) via DisplayTapesSkate, Panel_ReplayInstructions
+Bit_SetSparkTrajectoryCone_maybe = 0x8007D6B8; // type:func [C?] ps1 BIT score 2.0 (runner-up 0.0) via Video_Playback
+Bit_SetSparkTrajectory_maybe = 0x8007D6E0; // type:func [C?] ps1 BIT score 2.0 (runner-up 0.0) via Video_Playback
+Front_SwitchOnVideoScreen_maybe = 0x800916B0; // type:func [C?] ps1 FRONT score 2.0 (runner-up 0.0) via Video_Playback
+gte_op0_maybe = 0x80042F58; // type:func [C?] ps1 ext score 6.0 (runner-up 0.0) via CM_NoBigAir__7CCamera, CM_Normal__7CCamera, MoveToDesiredPos__7CCameraUi
+Utils_GetVecFromMagDir = 0x80047980; // type:func [C] ps1 UTILS score 6.0 (runner-up 1.5) via AI__9CPlatform, CM_NoBigAir__7CCamera, CM_Normal__7CCamera
+Ob_AI_maybe = 0x8004A89C; // type:func [C?] ps1 OB score 2.0 (runner-up 0.6) via CM_CompetitionIntro__7CCamera
+DoPhysics__9CPlatform_maybe = 0x800648AC; // type:func [C?] ps1 PLATFORM score 2.0 (runner-up 0.0) via AI__9CPlatform
+QToM = 0x80067A48; // type:func [C] ps1 QUAT score 4.5 (runner-up 0.0) via CM_CompetitionIntro__7CCamera, LoadIntoMikeCamera__7CCamera, MoveToDesiredPos__7CCameraUi
+MToQ = 0x80067B44; // type:func [C] ps1 QUAT score 6.0 (runner-up 0.0) via CM_NoBigAir__7CCamera, CM_Normal__7CCamera, MoveToDesiredPos__7CCameraUi
+CamPt_SetClosestCamera_maybe = 0x80073340; // type:func [C?] ps1 CAMPT score 2.0 (runner-up 0.0) via Video_Playback
+Competition_MarqueeDisplay_maybe = 0x80081DF8; // type:func [C?] ps1 COMPETITION score 2.0 (runner-up 0.0) via CM_CompetitionIntro__7CCamera
+RestartCompFrig_maybe = 0x8009556C; // type:func [C?] ps1 FRONT score 2.0 (runner-up 0.0) via Video_Playback
+Bounce__9CPlatformP6CBruceRC7CVector = 0x80063830; // type:func [C] ps1 PLATFORM score 3.0 (runner-up 0.0) via Platform_HandleBounce, SendKillFromNode
+SetNode__8CPowerUpi_maybe = 0x80067290; // type:func [C?] ps1 POWERUP score 2.0 (runner-up 0.0) via Trig_CreateObject
+CamPt_New_maybe = 0x80073A40; // type:func [C?] ps1 CAMPT score 2.0 (runner-up 0.0) via Trig_ParseTRGFile
+Exp_HitEnvItem_maybe = 0x80025430; // type:func [C?] ps1 EXP score 2.0 (runner-up 0.0) via SendKillFromNode
+Db_UpdateSky_maybe = 0x800356CC; // type:func [C?] ps1 DB score 2.0 (runner-up 0.0) via ExecuteCommandList
+SFX_SetReverbType_maybe = 0x8003A0D4; // type:func [C?] ps1 SFX score 2.0 (runner-up 0.0) via ExecuteCommandList
+SFX_MIDIChannelMute_maybe = 0x8003A0EC; // type:func [C?] ps1 SFX score 2.0 (runner-up 0.0) via ExecuteCommandList
+SFX_SpoolInMIDI_maybe = 0x8003A0F4; // type:func [C?] ps1 SFX score 2.0 (runner-up 0.0) via ExecuteCommandList
+SquirtAngles__5CBodyPs = 0x8004B204; // type:func [C] ps1 OB score 4.0 (runner-up 0.0) via __16CScriptOnlyBaddyPsi, __4CCarPsii, __9CPlatformPsi
+SquirtPos__5CBodyPs = 0x8004B22C; // type:func [C] ps1 OB score 4.0 (runner-up 0.0) via __16CScriptOnlyBaddyPsi, __4CCarPsii, __9CPlatformPsi
+Spool_FindEnviroItem_maybe = 0x800635E4; // type:func [C?] ps1 SPOOL score 2.6 (runner-up 1.2) via SendKillFromNode, TrickOb_DarkenNode
+TrickOb_DarkenNode_maybe = 0x80069998; // type:func [C?] ps1 TRICKOB score 2.0 (runner-up 0.0) via Trig_SendPulseToNode
+Front_SaveGameState_maybe = 0x80094FA8; // type:func [C?] ps1 FRONT score 2.0 (runner-up 0.0) via ExecuteCommandList
+QFromV_maybe = 0x80067528; // type:func [C?] ps1 QUAT score 2.0 (runner-up 0.0) via ReactToCollision__7CCamera
+// <<< end generated

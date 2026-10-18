@@ -1,0 +1,4 @@
+# Hand fixes to funclist's boundaries for USA v1.0 (applied by tools/seed_class.py), found as N64Recomp
+# errors ("Unhandled branch ...") on linker alignment garbage that sits in front of a function.
+trim = { "0x8007E948" = 8 }
+drop = []

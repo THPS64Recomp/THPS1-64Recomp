@@ -1,0 +1,30 @@
+# N64Recomp config for THPS1 (N64, U v1.1) - first cut, no runtime yet.
+# Inputs are generated locally from the user's ROM (make recomp-inputs):
+#   build/thps1.codeblob.bin  boot segment + ERZ-inflated main image
+#   recomp/thps1.syms.toml    sections + function boundaries (committed)
+[input]
+entrypoint = 0x80000400
+symbols_file_path = "thps1.syms.toml"
+rom_file_path = "../build/thps1.codeblob.bin"
+output_func_path = "../build/recomp/funcs"
+
+[patches]
+# PS1 GTE (COP2) instructions left in the N64 port. The VR4300 has no COP2;
+# libultra's handler treats a CpU exception for COP2 as fatal, so these paths
+# must be dead in practice. N64Recomp cannot translate COP2 at all.
+#   0x8005D0B0: 3x mfc2 (MAC1-3 read-back) - function IS called (2 sites)
+#   0x8006F574: 3x ctc2 (rotation-matrix load) - no callers found
+ignored = ["func_8006F574"]
+
+[[patches.instruction]]
+func = "func_8005D0B0"
+vram = 0x8005D264
+value = 0x00000000
+[[patches.instruction]]
+func = "func_8005D0B0"
+vram = 0x8005D268
+value = 0x00000000
+[[patches.instruction]]
+func = "func_8005D0B0"
+vram = 0x8005D26C
+value = 0x00000000

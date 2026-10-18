@@ -1,0 +1,33 @@
+# Host-forced names for code class us10 (THPS1 USA v1.0), at this class's addresses.
+# Found by decomp/common/sigmatch.py from the v1.1 symbol file (tier A unless noted) and checked by
+# disassembly; the same NAMES as versions/us11 (versions/host_syms.toml `funcs`).
+
+splits = [0x800A1B20]   # `jr ra; li v0,1` after the endless thread loop func_800A1AC8 (v1.1: 0x800B3C20)
+
+[force]
+"0x80000400" = "Boot_Entry"
+"0x80000870" = "Boot_Main"
+"0x80000AA0" = "Boot_PioCopy"
+"0x80000B08" = "Erz_Unpack"
+"0x80000C40" = "Erz_UnpackMethod2"
+"0x80001330" = "Erz_UnpackMethod1"
+"0x80002E00" = "thps_osSetEventMesg"
+"0x80004770" = "thps_osPiRawStartDma"
+"0x8000FC60" = "thps_osAiGetStatus"     # tier O (several identical bodies), between its neighbours
+"0x80007494" = "thps_osContGetQuery"
+"0x8005C890" = "Cop2_MacReadback"
+"0x8006ED54" = "Cop2_RotLoad"
+"0x800B0A94" = "Pi_DmaThread"           # not matched (modified: no PAL/pause check): found from the jal to osPiRawStartDma
+"0x800A2280" = "GameEntry"
+"0x800A73C8" = "View_SetFrustum"
+"0x800A7E6C" = "View_ComputeCullPlanes"
+"0x8009719C" = "Front_NoticeUpdate"
+"0x8002B360" = "NameEntry_Update"   # = v1.1 0x8002B6D0 (sigmatch tier A, 1596 bytes: the whole body matches)
+"0x8002A238" = "Front_IntroUpdate"
+"0x800411C0" = "CourseSelect_UpdateLock"   # = v1.1 0x80041AAC (sigmatch tier A)
+"0x800B32A0" = "Music_LoadSong"   # = THPS2 USA 0x800D1E34 (same code, only the string/table addresses differ)
+
+[cop2]
+ignored = ["Cop2_RotLoad"]
+# v1.1 0x8005D0B0 + 0x1B4.. : the three mfc2 (verified by disassembly)
+patch = { Cop2_MacReadback = [0x8005CA44, 0x8005CA48, 0x8005CA4C] }

@@ -1,0 +1,68 @@
+# splat config for the THPS1 (N64, U v1.1) ROM: header, IPL3, the uncompressed
+# boot segment (IDO-built libultra + Edge of Reality's loader and handwritten
+# ERZ/RNC decoders), and everything after it kept as binary blobs:
+# the main-code chunk table, the 14 ERZ-compressed main-code chunks, and the
+# asset container tree. The main code itself is split by thps1.main.yaml from
+# the *decompressed* image (Dr. Mario 64 / Conker pattern).
+name: Tony Hawk's Pro Skater (U) (V1.1)
+sha1: 4900b6c92fb8df1765e91e891dccc525bb102fe1
+options:
+  basename: thps1
+  target_path: baserom.z64
+  base_path: ..
+  platform: n64
+  compiler: IDO
+  asm_path: asm/boot
+  asset_path: assets/boot
+  build_path: build
+  ld_script_path: linker_scripts/thps1.ld
+  undefined_funcs_auto_path: linker_scripts/boot_undefined_funcs_auto.txt
+  undefined_syms_auto_path: linker_scripts/boot_undefined_syms_auto.txt
+  symbol_addrs_path:
+    - symbols/boot.txt
+  find_file_boundaries: False
+  migrate_rodata_to_functions: False
+  create_c_files: False
+  o_as_suffix: True
+  mnemonic_ljust: 10
+  rom_address_padding: True
+  ld_bss_is_noload: True
+segments:
+  - name: header
+    type: header
+    start: 0x0
+  - name: ipl3
+    type: bin
+    start: 0x40
+  - name: boot
+    type: code
+    start: 0x1000
+    vram: 0x80000400
+    bss_size: 0x3BB0          # 0x80012F10..0x80016AC0, cleared by the entry stub
+    subsegments:
+      - [0x1000, hasm, entry] # entry stub: sp, clear boot BSS, jal boot main (+2 pad words)
+      # libultra .rodata (cosf/sinf consts, __osRcpImTable, xprintf, ...) sits
+      # between the entry stub and the rest of .text in this link
+      - { start: 0x1070, type: rodata, name: rodata, linker_section_order: .text }
+      - [0x1470, asm, text]   # loader main, ERZ decoders, libultra (IDO)
+      - [0x12810, data, data] # 0x80011C10: libultra data, VI mode tables, ...
+      - { start: 0x13B10, type: bss, vram: 0x80012F10, name: bss }
+  - [0x13B10, bin, main_table]      # asset root ptr (0xB0061E26) + chunk table
+  - [0x13B54, bin, main_chunk00]     # ERZ m1 -> 0x80016AC0
+  - [0x1AF48, bin, main_chunk01]     # ERZ m1 -> 0x80026AC0
+  - [0x21FBC, bin, main_chunk02]     # ERZ m1 -> 0x80036AC0
+  - [0x28B78, bin, main_chunk03]     # ERZ m1 -> 0x80046AC0
+  - [0x2F43C, bin, main_chunk04]     # ERZ m1 -> 0x80056AC0
+  - [0x3675C, bin, main_chunk05]     # ERZ m1 -> 0x80066AC0
+  - [0x3D968, bin, main_chunk06]     # ERZ m1 -> 0x80076AC0
+  - [0x447E8, bin, main_chunk07]     # ERZ m1 -> 0x80086AC0
+  - [0x49CF4, bin, main_chunk08]     # ERZ m1 -> 0x80096AC0
+  - [0x518B4, bin, main_chunk09]     # ERZ m1 -> 0x800A6AC0
+  - [0x59CA0, bin, main_chunk10]     # ERZ m1 -> 0x800B6AC0
+  - [0x5F0E0, bin, main_chunk11]     # ERZ m1 -> 0x800C6AC0
+  - [0x605D8, bin, main_chunk12]     # ERZ m1 -> 0x800D6AC0
+  - [0x61184, bin, main_chunk13]     # ERZ m1 -> 0x800E6AC0
+  - [0x61E25, bin, pad_61E25]       # one 0x00 byte: assets start 2-aligned
+  - [0x61E26, bin, assets]          # container tree: 7 packs of 16 KiB ERZ/raw pieces
+  - [0xBF04C9, bin, rom_tail]       # zero fill to 12 MiB
+  - [0xC00000]

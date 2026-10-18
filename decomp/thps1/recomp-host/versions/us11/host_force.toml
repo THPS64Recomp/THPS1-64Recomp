@@ -1,0 +1,53 @@
+# Host-forced names for code class us11 (THPS1 USA v1.1 and the European release).
+# Read by decomp/common/gen_host_syms.py --force; the same NAMES must exist in every class
+# (versions/host_syms.toml `funcs`), at that class's own addresses.
+
+splits = [0x800B3C20]   # `jr ra; li v0,1` after the endless thread loop func_800B3BC8
+
+[force]
+"0x80000400" = "Boot_Entry"
+"0x80000870" = "Boot_Main"
+"0x80000AA0" = "Boot_PioCopy"
+"0x80000B08" = "Erz_Unpack"
+"0x80000C40" = "Erz_UnpackMethod2"
+"0x80001330" = "Erz_UnpackMethod1"
+"0x80002E00" = "thps_osSetEventMesg"
+"0x80004770" = "thps_osPiRawStartDma"
+"0x80010A40" = "thps_osAiGetStatus"
+"0x80007574" = "thps_osContGetQuery"
+"0x8005D0B0" = "Cop2_MacReadback"   # 3x mfc2 (PS1 GTE leftovers): instruction patches below
+"0x8006F574" = "Cop2_RotLoad"       # 3x ctc2, uncalled: ignored
+"0x800BAE84" = "Pi_DmaThread"
+"0x800C0480" = "GameEntry"
+# Widescreen / skip intro (names are ours, by what the code does):
+"0x800A4418" = "View_SetFrustum"   # glFrustum(view, l, r, b, t, n, f) -> view+0xA0 matrix, l..f at +0x160
+"0x800A4EBC" = "View_ComputeCullPlanes"   # frustum corners at the far plane -> view-space cull planes (+0x188..)
+"0x800979CC" = "Front_NoticeUpdate"   # pak/notice message screen (vtable 0x80020860): the boot Expansion Pak notice
+"0x8002B6D0" = "NameEntry_Update"   # SAVE CAREER / SAVE DATA name screen: 13 slots, D-pad only (Left/Right cursor, Up/Down letter, A accept, B back)
+"0x8002A588" = "Front_IntroUpdate"   # legal screen + logo videos (vtable 0x80019270); returns 3 = go to the title
+"0x80041AAC" = "CourseSelect_UpdateLock"   # SELECT COURSE: sets the cursor course's locked word from the tapes / medals it needs (--unlock-levels hooks it)
+"0x800A93B0" = "Music_LoadSong"   # = THPS2 USA 0x800D1E34 (same code, only the string/table addresses differ)
+
+# N64Recomp config pieces (tools/gen_versions.py): PS1 GTE (COP2) leftovers. The VR4300 has no
+# COP2; libultra treats a CpU exception as fatal, so these paths must be dead in practice.
+[cop2]
+ignored = ["Cop2_RotLoad"]
+# func -> absolute vrams of the instructions replaced by the value (a nop)
+patch = { Cop2_MacReadback = [0x8005D264, 0x8005D268, 0x8005D26C] }
+
+# The European release shares this class (the same program), and a first-run build translates ITS code blob with this symbol
+# file. Its code differs from USA v1.1 in 230 words (docs/versions.md); two of the difference sites are not code:
+# - `ignored`: functions that are only alignment padding between objects. USA v1.1 has noise there; Europe has leftover bytes that
+#   decode as a jal into a gap (func_80029658) or a branch out of the function (func_80070CDC), which stops N64Recomp. Nothing calls them.
+# - the TV-type accessor func_800C01C8 returns "is PAL" in Europe and "is not PAL" in USA v1.1 (its delay-slot word). The patch makes
+#   Europe's accessor v1.1's, so Europe at osTvType = NTSC (ADR 0004) behaves like the static build, which runs v1.1's payload on it.
+#   For USA v1.1 the patch writes the word that is already there.
+# Everything else Europe differs in is padding between functions or data (strings, 4 splash images). Checked: with this table, N64Recomp's
+# output for the Europe blob equals the output for the USA v1.1 blob in all functions except 16 padding-word sites that nothing calls.
+[config]
+ignored = ["func_80029658", "func_80070CDC"]
+
+[[config.instruction]]
+func = "func_800C01C8"
+vram = 0x800C01D4
+value = 0x0002102B   # sltu v0, zero, v0
