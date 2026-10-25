@@ -55,11 +55,9 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
 
 ## Input and saves
 
-- **Player 2:** there's no screen for assigning controllers. The first controller to press a button is player 1 and the
-  next is player 2; the keyboard is always player 1, so two players need two controllers ([MANUAL](MANUAL.md#controls)).
-  A screen for this is planned.
-- **Single keys and buttons** can't be rebound in the settings menu yet; it picks a layout. Edit `controls.cfg` for the
-  rest.
+- **Player 2:** by default the first controller to press a button is player 1 and the next is player 2. The Controls
+  tab's Controllers list can swap them or give a controller either player; that choice lasts until you quit
+  ([MANUAL](MANUAL.md#controls)). The keyboard is always player 1.
 - The game's own PLAYER 1 CONTROLS remap is saved in the career save, so a swapped scheme travels with a save.
 - **Cheats are test aids:** off by default. They aren't stored in the Controller Pak save, but progress you make with a
   cheat on (tapes, scores, levels unlocked by playing) is saved as usual. While one is on, the log and `crash.log` name it ([MANUAL](MANUAL.md#cheats)).
@@ -77,4 +75,4 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
 
 ## Not in this release
 
-Texture packs, mods, rebinding single keys in the menu, and a launcher beyond the first-start window.
+Texture packs, mods, and a launcher beyond the first-start window.

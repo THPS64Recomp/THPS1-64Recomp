@@ -34,7 +34,8 @@ it on the first start.
 - **Recomp settings:** press **Esc** (or **Back** on a controller) for graphics, controls, sound and cheats. The game's
   own options are still in its menus.
 - **Modern controls:** any SDL controller, hot-plugging, two players. Xbox-style layout (ollie, flip, grab and grind on the
-  face buttons instead of the N64's C buttons) or the original N64 layout.
+  face buttons instead of the N64's C buttons) or the original N64 layout. Rebind any button or key in the settings menu,
+  and pick which controller is player 1 or 2 there.
 - **Saves:** Controller Pak saves in a standard `.mpk` file.
 - **Cheats:** Unlock All Levels, Perfect Balance, Slow Motion, Skip to Restart. Off by default.
 
@@ -88,7 +89,6 @@ All bindings and the N64 layout: [docs/MANUAL.md](docs/MANUAL.md).
 
 - A short freeze (about 0.1 s) when a level loads.
 - At 21:9, a far wall can drop out at the right edge.
-- No screen yet for choosing which controller is player 1 or 2.
 
 Full list: [docs/KNOWN-ISSUES.md](docs/KNOWN-ISSUES.md).
 
