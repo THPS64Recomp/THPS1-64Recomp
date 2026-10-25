@@ -1423,3 +1423,12 @@ SESSIONS += [
         ]),
     ]),
 ]
+
+# Border crop (graphics setting `border`, src/border_crop.cpp): the shared tests/crop_sessions.py.
+from crop_sessions import crop_sessions  # noqa: E402
+SESSIONS += crop_sessions([("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+                           ("go", "A", "level_select", "tips_ready"), ("go", "A", "tips_ready", "in_level")],
+                          pause=[("go", "START", "in_level", "pause")])
+# Border crop in a two-player split screen at 16:9: each view's own inset scissor goes to the frame's edges too (crop_sessions.crop_two_players).
+from crop_sessions import crop_two_players  # noqa: E402
+SESSIONS.append(crop_two_players(_TWO_PLAYERS_TO_LEVEL, _TWO_PLAYERS_PAUSE))
