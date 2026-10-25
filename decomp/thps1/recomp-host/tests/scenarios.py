@@ -1432,3 +1432,20 @@ SESSIONS += crop_sessions([("wait_for", "title"), ("go", "START", "title", "main
 # Border crop in a two-player split screen at 16:9: each view's own inset scissor goes to the frame's edges too (crop_sessions.crop_two_players).
 from crop_sessions import crop_two_players  # noqa: E402
 SESSIONS.append(crop_two_players(_TWO_PLAYERS_TO_LEVEL, _TWO_PLAYERS_PAUSE))
+# Level-start freeze (v0.2 queue item 3, tests/load_freeze.py): the course cycle's four starts with frame timestamps over each load.
+# `lf-probe` (optin) runs in a visible window, the user's case; THPS_LF_SAMPLE=4 adds a `sample` of the host over each load phase.
+from load_freeze import load_freeze_session  # noqa: E402
+_LF = dict(
+    to_select=[("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 0), ("go", "A", "main_menu", "career_menu"),
+               ("menu", "career", 1), *TO_LEVEL_SELECT],
+    courses=[[], [("press", "RIGHT"), ("wait", 20)], [("press", "RIGHT"), ("wait", 20)], [("press", "RIGHT"), ("wait", 20), ("press", "RIGHT"), ("wait", 20)]],
+    phases=[("A", "career_goals"), ("A", "in_level")],
+    end_run=[("go", "START", "in_level", "pause"), ("menu", "pause", 3), ("go", "A", "pause", "statistics"), ("go", "A", "statistics", "postrun_menu"),
+             ("menu", "postrun", 2), ("go", "A", "postrun_menu", "level_select")],
+)
+SESSIONS += [load_freeze_session("lf-probe", **_LF, hidden=False, optin=True, limits={"composited": 1000.0, "game": 1000.0})]
+# The suite's check (hidden window, the first three courses): the median over the three starts of the longest gap between game
+# frames while the course loads stays under LF_GAME_MS (one preempted window on a busy machine does not fail it; a warning only
+# when the machine is overloaded). Before the v0.2 fixes (ERZ decoder, native memset / memcpy) every start was over it.
+LF_GAME_MS = 130.0   # 2026-10-18: 64-107 ms after the fixes (load 4-5), 120-222 ms before (load 9-11)
+SESSIONS += [load_freeze_session("lf-check", **{**_LF, "courses": _LF["courses"][:3]}, limits={"game": 1000.0}, median=("game", LF_GAME_MS))]

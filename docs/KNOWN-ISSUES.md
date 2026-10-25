@@ -39,8 +39,10 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
 - **Frame interpolation** at 60 Hz and up pairs 97 to 99 % of the moving parts between game frames in the Warehouse and
   the menus. Other levels have cars and other moving objects whose pairing hasn't been checked. Replays and the
   competition intro are untested.
-- **Each level start freezes the picture for 100 to 150 ms** while the game loads the level. The **attract demo** has
-  similar stalls every ten seconds or so (80 to 110 ms), more visible in Low Power Mode.
+- **Each level start freezes the picture for about 0.13 s** while the game loads the level (0.2 s in v0.1; unpacking
+  and clearing memory now run natively). What remains is the game's own load, which runs in one go as on the console,
+  and RT64 showing nothing new for about two more frames after it. The **attract demo** pauses for 60 to 85 ms when it
+  loads the next skater (90 to 130 ms in v0.1), more visible in Low Power Mode.
 - RT64 **compiles a shader the first time an effect appears.** In a 36-minute soak test that caused one stall of about
   0.4 s, at the first level after the start.
 - With the window hidden or covered, the app stops presenting frames; the game keeps running.
