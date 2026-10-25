@@ -35,7 +35,6 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
 - **Widescreen:** the 3D view is widened and the in-level HUD moves to the screen edges (`hud = expand`; `original` keeps
   it in the centred 4:3 area). The HUD keeps its 4:3 size, and a few elements (the timer, trick lines, the pause menu,
   result pages) stay centred on purpose. Menus, loading screens and other 2D screens are pillarboxed 4:3.
-- At **21:9**, a far wall can drop out at the right edge of the picture.
 - **Two players** (split screen) stays a 4:3 picture in widescreen; the scores move to the window's edges. Widening it is planned.
 - **Frame interpolation** at 60 Hz and up pairs 97 to 99 % of the moving parts between game frames in the Warehouse and
   the menus. Other levels have cars and other moving objects whose pairing hasn't been checked. Replays and the

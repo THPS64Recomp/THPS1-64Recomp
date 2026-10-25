@@ -1221,3 +1221,91 @@ SESSIONS += [course_cycle_session(
      ("menu", "postrun", 2), ("go", "A", "postrun_menu", "level_select")],
     expect=LOAD_LINE,   # THPS1 stops the menu song before it loads the course's: no channel reads the buffer then (2026-10-17)
 )]
+
+# 21:9 far-wall dropout (v0.2 queue item 2), evidence (optin): in a course (DROPOUT_COURSE, 0 = Warehouse; RIGHT presses on the course select),
+# skate and turn, then pause at N stops; at each stop a present capture with the normal cull widening (cull 1) and with it x4 (cull 4).
+# Anything that appears only at cull 4 is something the game culls that the wide picture should show.
+_DROP_COURSE = int(_os.environ.get("DROPOUT_COURSE", "0"))
+_DROP_STOPS = int(_os.environ.get("DROPOUT_STOPS", "10"))
+SESSIONS += [
+    dict(name="dropout-scan", config="dropout-config", fresh_pak=True, wav=False, optin=True, present_every=5,
+         args=["--skip-intro", "--hidden", "--unlock-levels", "--aspect", "21:9", "--window", "1680x720", "--present-size", "840x360"]
+              + _os.environ.get("DROPOUT_ARGS", "").split(), scenarios=[
+        ("dropout_scan", "evidence: paused stops at 21:9, cull 1 vs cull 4 present captures (dropout_<stop>_c1/_c4.png)", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            *[s for _ in range(_DROP_COURSE) for s in (("press", "RIGHT"), ("wait", 12))],
+            ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300),
+            ("vpad", "attach"), ("vpress", "leftshoulder"), ("wait", 20),
+            *[s for i in range(_DROP_STOPS) for s in (
+                ("ctl", "vpad axis lefty -32000"), ("ctl", f"vpad axis leftx {(-1) ** (i // 2) * (12000 + 2500 * i)}"), ("wait", 25 + 5 * (i % 5)),
+                ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0"), ("wait", 4),
+                ("press", "START"), ("wait", 40),
+                ("keep_present", f"dropout_{i:02d}_c1"),
+                ("ctl", "cull 4"), ("wait", 12), ("keep_present", f"dropout_{i:02d}_c4"),
+                ("ctl", "cull 0"), ("wait", 12), ("keep_present", f"dropout_{i:02d}_c0"),
+                ("ctl", "cull 1"), ("wait", 12), ("keep_present", f"dropout_{i:02d}_c1b"),
+                ("vpress", "b"), ("wait", 30),
+            )],
+        ]),
+    ]),
+]
+# The level start at 21:9 (where the dropout was first seen, Q16 "uw219, top right"): every presented frame of the first seconds,
+# then the paused frame of cam-219 with a cull A/B.
+SESSIONS += [
+    dict(name="dropout-start", config="dropout-start-config", fresh_pak=True, wav=False, optin=True, present_every=15,
+         args=["--skip-intro", "--hidden", "--aspect", "21:9", "--window", "1680x720", "--res-scale", "2"]
+              + _os.environ.get("DROPOUT_ARGS", "").split(), scenarios=[
+        ("dropout_start", "evidence: the Warehouse start at 21:9 (pcap) and the paused cam-219 frame, cull 1 / 4", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            ("go", "A", "level_select", "tips_ready"), ("press", "A"),
+            ("pcap", 150, "start_pcap"),
+            ("wait_for", "in_level"),
+            ("press_after", "START", 200), ("wait", 30), ("wait_for", "paused_w90"),
+            ("keep_present", "start_paused_c1"),
+            ("ctl", "cull 4"), ("wait", 12), ("keep_present", "start_paused_c4"), ("ctl", "cull 1"),
+        ]),
+    ]),
+]
+# Every presented frame of ~12 s of skating with turns at 21:9 (DROPOUT_COURSE), for an offline pop / hole detector.
+SESSIONS += [
+    dict(name="dropout-pcap", config="dropout-pcap-config", fresh_pak=True, wav=False, optin=True,
+         args=["--skip-intro", "--hidden", "--unlock-levels", "--aspect", "21:9", "--window", "1680x720", "--present-size", "840x360"]
+              + _os.environ.get("DROPOUT_ARGS", "").split(), scenarios=[
+        ("dropout_pcap", "evidence: every presented frame of skating with turns at 21:9 (drop_pcap/)", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            *[s for _ in range(_DROP_COURSE) for s in (("press", "RIGHT"), ("wait", 12))],
+            ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300),
+            ("vpad", "attach"), ("vpress", "leftshoulder"), ("wait", 20),
+            ("ctl", "vpad axis lefty -32000"), ("wait", 20),
+            ("ctl", "pcap 1 " + _os.path.join(_os.environ.get("THPS_HOST", "."), "build", "droppcap", str(_DROP_COURSE) + _os.environ.get("DROPOUT_TAG", ""))),
+            *[s for i in range(12) for s in (("ctl", f"vpad axis leftx {(-1) ** i * 24000}"), ("wait", 15), ("ctl", "vpad axis leftx 0"), ("wait", 15))],
+            ("ctl", "pcap 0"), ("ctl", "vpad axis lefty 0"), ("wait", 10),
+        ]),
+    ]),
+]
+# 21:9 dropout regression (v0.2 queue item 2): on the paused cam-219 Warehouse frame (an exact input poll), culling 4x wider than the
+# widescreen hook does (cull 4) adds nothing to the picture's side bands, so nothing the wide picture shows is culled; culling at 4:3
+# (cull 0) takes something away there, so the check would see a dropout. At 21:9, 16:9 and fit window (expand, a 2.9:1 window).
+SESSIONS += [
+    dict(name=f"dropout-{var}", config=f"dropout-{var}-config", fresh_pak=True, wav=False, present_every=30,
+         args=["--skip-intro", "--hidden", "--aspect", asp, "--window", win, "--res-scale", "2"], scenarios=[
+        (f"dropout_{var}", f"{asp} ({win}): the paused Warehouse frame, side bands: cull 4 = cull 1, cull 0 loses geometry", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            ("go", "A", "level_select", "tips_ready"), ("go", "A", "tips_ready", "in_level"),
+            ("press_after", "START", 200), ("wait", 30), ("wait_for", "paused_w90"),
+            # The presented picture fades into the pause screen ~100 presents after the game-visible frame shows it: let it settle.
+            # present_every 30 (not 5): at 2100x720 the PNG writers fell seconds behind every 5th present, so the newest capture
+            # on disk was an old frame.
+            ("wait", 60), ("keep_present", f"dropout_{var}_c1"),
+            ("ctl", "cull 4"), ("wait", 20), ("keep_present", f"dropout_{var}_c4"),
+            ("ctl", "cull 0"), ("wait", 20), ("keep_present", f"dropout_{var}_c0"),
+            ("ctl", "cull 1"), ("wait", 20), ("keep_present", f"dropout_{var}_c1b"),
+            # The two 1x captures: the same paused picture, apart from animated textures (a Warehouse poster keeps cycling).
+            ("present_cmp", f"dropout_{var}_c1", f"dropout_{var}_c1b", 0.0, 0.01),
+            # 4x culling adds nothing in the side bands, ignoring what moved between the two 1x captures.
+            ("present_cmp", f"dropout_{var}_c1", f"dropout_{var}_c4", 0.0, 0.0, "sides", f"mask:dropout_{var}_c1b"),
+            ("present_cmp", f"dropout_{var}_c1", f"dropout_{var}_c0", 0.0, 1.0, "sides"),
+        ]),
+    ])
+    for (var, asp, win) in (("219", "21:9", "1680x720"), ("169", "16:9", "1280x720"), ("fit", "expand", "2100x720"))
+]
