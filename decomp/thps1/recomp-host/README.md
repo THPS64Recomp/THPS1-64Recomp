@@ -301,6 +301,7 @@ and turns the fps check into a warning.
 | qol / qol-reload | `skip_intro`, `fps_counter`, `vpad_bindings`, `crash_log`, `bindings_persist`, `volume_zero` | the settings checks (skip intro, fps counter, bindings, crash log, volume) |
 | cam-43 (`--aspect original --window 960x720`) | `cam_ref_43` | Warehouse paused 200 polls after the start (reference `paused_w90`); `edges` of the 4:3 border |
 | cam-219 (`--aspect 21:9 --window 1680x720`) | `cam_same_219` | the same native frame as at 4:3 (camera unchanged), side bands filled |
+| dropout-219, dropout-169, dropout-fit (21:9, 16:9, following the window) | `dropout_*` | the paused `cam-219` frame captured with the cull planes widened 1x, 4x, not at all (4:3) and 1x again (`cull K`): the two 1x captures match, and 4x matches 1x in the side bands, so nothing the wide picture shows is culled (`present_cmp`) |
 | hfr (`--refresh 60 --hidden --skip-intro`) | `input_latency` | main menu: median of 6 DOWN/UP presses -> first present with the cursor moved <= 100 ms (~22 ms seen) |
 | | `hfr_motion` | Warehouse, stick up 4 s, every present captured: frame_motion on a 60 Hz timeline >= 0.9 (1.0 seen; 0.5 at 30 fps), even steps (alternation <= 0.3; 0.01 seen, 1.0 at 30 fps), RT64 interpolating >= 90 % of game frames, >= 60 % of transforms paired (87–98 %), <= 5 % in-between frames dropped (0), fps >= 28 |
 | | `hfr_cut` | pause -> RETRY: the host logs a camera cut and that frame is not interpolated |

@@ -9,6 +9,8 @@ All notable changes to THPS1 64: Recompiled are listed here. The format is based
 
 ### Changed
 - Built on THPS64Host v0.2.0.
+- Removed the known issue "at 21:9, a far wall can drop out at the right edge". It doesn't happen in v0.1.0. New tests
+  check that widescreen never hides scenery at the edges of the picture.
 
 ## [0.1.0] - 2026-10-18
 
