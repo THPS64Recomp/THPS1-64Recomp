@@ -236,7 +236,8 @@ Options:
 - High frame rate: `--hfr-tags 0` (RT64's automatic pairing only, no cut handling),
   `--hfr-cut-jump F[:MIN]` / `--hfr-cut-angle DEG` (camera-cut thresholds, default 8:40 and 25).
 - `--hidden` (never show the window: frames are composited, not presented),
-  `--cull-extra K` (scale the widescreen cull widening; 0 = off, for A/B).
+  `--cull-extra K` (scale the widescreen cull widening; 0 = off, for A/B),
+  control `split [on|off]` (the `split` setting live for one run, for A/B, and the split-screen counters).
 - `--always-present` (present even when the window is occluded),
   `--null-audio` (don't run the audio microcode).
 - `--control`: read commands from stdin, one per line, each answered with
@@ -302,6 +303,9 @@ and turns the fps check into a warning.
 | cam-43 (`--aspect original --window 960x720`) | `cam_ref_43` | Warehouse paused 200 polls after the start (reference `paused_w90`); `edges` of the 4:3 border |
 | cam-219 (`--aspect 21:9 --window 1680x720`) | `cam_same_219` | the same native frame as at 4:3 (camera unchanged), side bands filled |
 | dropout-219, dropout-169, dropout-fit (21:9, 16:9, following the window) | `dropout_*` | the paused `cam-219` frame captured with the cull planes widened 1x, 4x, not at all (4:3) and 1x again (`cull K`): the two 1x captures match, and 4x matches 1x in the side bands, so nothing the wide picture shows is culled (`present_cmp`) |
+| two-players-169, -219, -169-hudorig (`--aspect 16:9` / `21:9`, two virtual pads; the last with `--hud original`) | `two_players_*` | TWO PLAYERS > GRAFFITI: the split screen fills the wide picture (`present_split`: >= 90 % of the side-band columns drawn), each player's HUD block at its own view's left edge (`split` counters: groups at q0 and q2), each pad on its own port |
+| two-players-169-splitorig (`--aspect 16:9 --split original --hud expand`) | `two_players_169_splitorig` | both views in the 4:3 middle: black side bands, each player's HUD with its view (`present_bands_clear`: the side bands are black; `split` counters: `kept` > 0, no group placed, `bands` reported). Shared: `tests/hud_sessions.py` |
+| two-players-43 (`--aspect original`) | `two_players_43` | the paused split screen at 4:3: `split on`, `off`, `on` give the same picture (0 % of pixels differ) |
 | hfr (`--refresh 60 --hidden --skip-intro`) | `input_latency` | main menu: median of 6 DOWN/UP presses -> first present with the cursor moved <= 100 ms (~22 ms seen) |
 | | `hfr_motion` | Warehouse, stick up 4 s, every present captured: frame_motion on a 60 Hz timeline >= 0.9 (1.0 seen; 0.5 at 30 fps), even steps (alternation <= 0.3; 0.01 seen, 1.0 at 30 fps), RT64 interpolating >= 90 % of game frames, >= 60 % of transforms paired (87–98 %), <= 5 % in-between frames dropped (0), fps >= 28 |
 | | `hfr_cut` | pause -> RETRY: the host logs a camera cut and that frame is not interpolated |
@@ -358,7 +362,8 @@ right-edge columns showed magenta (`patches/rt64-hfr.patch`).
 | res_scale | `0` | `--res-scale N` | internal resolution; 0 = integer scale of the window (3x here, 9x fullscreen on 4K) |
 | msaa | `4` | `--msaa` | 0, 2, 4 (8 isn't offered by Apple GPUs: RT64 turns MSAA off) |
 | refresh | `display` | `--refresh` | `original` (the game's 30 fps), `display` (the display's rate: 60, 120 on ProMotion), or N (30..1000) |
-| hud | `expand` | `--hud` | HUD placement in widescreen: `original` (the HUD stays in the centred 4:3 area, as on a TV), `16:9` (score, special meter, tips... move to the edges of a 16:9 picture, also at 21:9), `expand` (the default: to the edges of the window's picture; the same as `16:9` in a 16:9 window). Nothing moves at `--aspect original`. Menu: Graphics > HUD Placement. Menus, loading screens, the pause menu and result pages always stay a centred 4:3 page (`src/hud_anchor.cpp`; the same setting works in THPS2 and THPS3, rules per game in `game/game.toml`) |
+| hud | `expand` | `--hud` | HUD placement in widescreen: `original` (the HUD stays in the centred 4:3 area, as on a TV), `16:9` (score, special meter, tips... move to the edges of a 16:9 picture, also at 21:9), `expand` (the default: to the edges of the window's picture; the same as `16:9` in a 16:9 window). Nothing moves at `--aspect original`. Menu: Graphics > HUD Placement. Menus, loading screens, the pause menu and result pages always stay a centred 4:3 page. In a widened two-player split screen each player's HUD block goes to its own view's edge, with `original` too (the views fill the picture there; `16:9` uses the halves of a 16:9 picture) (`src/hud_anchor.cpp`; the same setting works in THPS2 and THPS3, rules per game in `game/game.toml`) |
+| split | `wide` | `--split` | two-player split screens in widescreen: `wide` each player's view fills its half of the wide picture (RT64 patch `rt64-splitscreen-widescreen.patch`), `original` both views stay in the centred 4:3 area (the picture before v0.2), black side bands, each player's HUD where the game draws it, whatever `hud` says. Nothing changes at `--aspect original`. Menu: Graphics > Two-Player Split Screen. Tests `two-players-169`, `-219`, `-169-hudorig`, `-169-splitorig`, `-43`, `menu-hud` |
 
 A `graphics.cfg` written before  that still holds exactly the old defaults (4:3, 960x720,
 no MSAA; the host saved them on first start) is moved to these once, with a log line; a file

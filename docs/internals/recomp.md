@@ -80,13 +80,16 @@ user's dump provides at run time.
   thread only (a game-thread SDL call crashed sdl2-compat). **Controller Pak** (`src/pak.cpp`): the `osPfs*` file API on a real `.mpk`
   layout; `osContGetQuery` is hooked so the port reports a pak present, otherwise the game's note list closes at once.
 - **Widescreen** (`src/widescreen.cpp`): the game's frustum and culling are widened (`View_SetFrustum`, `View_ComputeCullPlanes`),
-  RT64 gets a patch for extended-aspect slack, and the in-level HUD goes to the screen edges by default (`src/hud_anchor.cpp`; `--hud original` keeps it centred 4:3). **Frame interpolation** (`src/interpolation.cpp`):
+  RT64 gets a patch for extended-aspect slack, and the in-level HUD goes to the screen edges by default (`src/hud_anchor.cpp`; `--hud original` keeps it centred 4:3).
+  **Two players** draw two side-by-side views, each a half-width viewport and scissor (THPS1 v1.1: `View_ApplyRect` at 0x800A602C emits the
+  viewport and the scissor of a view from its rect). RT64 only widens a full-width view, so a second patch widens a pair of half views, and
+  each player's HUD block goes to its own view's left edge. **Frame interpolation** (`src/interpolation.cpp`):
   RT64 renders in-between frames and pairs each transform with the previous frame's; the host tells RT64 the game's rate (30) on
   every task and tags camera cuts so they are not swept. THPS1's matrices suit this: world-space model matrices that are loaded,
   never pushed, and a view-projection camera. Measured numbers: [../VERIFICATION.md](../VERIFICATION.md).
 - **Patches to RT64** (`decomp/common/host/patches/`): a one-line include for recent macOS SDKs; present capture plus
   widescreen slack; frame-interpolation counters, a pre-command hook, and clearing of new colour targets (needed for MSAA in
-  widescreen). They are carried as patch files and applied by `tools/setup_runtime.py` to the pinned commit.
+  widescreen); widening for side-by-side split screens. They are carried as patch files and applied by `tools/setup_runtime.py` to the pinned commit.
 - **PAL.** The game picks 50 or 60 Hz timing from `osTvType`. The runtime paces retraces at 60 Hz, so the host sets NTSC by
   default, including for the European release (see the [MANUAL](../MANUAL.md#why-europe-runs-at-60-hz)). A 50 Hz runtime patch (`ultramodern-vi-rate.patch`) is
   written and not applied.
