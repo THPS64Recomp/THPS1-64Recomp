@@ -248,7 +248,7 @@ Options:
   tasks), `audio` (RMS/peak since the last `audio`), `edges N [DIR]`
   (frame-to-frame change of the left/right border bands of the next N
   *presented* frames, i.e. RT64's final image; DIR also gets the first 6 as
-  PNGs), `peek`/`poke`/`ramsave`, `vpad`, `bind`, `stats`, `wait FRAMES`,
+  PNGs), `peek`/`poke`/`ramsave`, `vpad`, `bind`, `ports`, `stats`, `wait FRAMES`,
   `quit` (EOF on stdin also quits).  adds `pcap EVERY [DIR]` (present captures
   on/off at run time), `dltrace` (trace the next gfx task), `hfr` / `hfrdbg` / `hfrcam`
   (pairing counters, the next frame's paired/unpaired transforms, camera-cut detector),
@@ -314,6 +314,7 @@ and turns the fps check into a warning.
 | | `hfr_motion` | Warehouse, stick up 4 s, every present captured: frame_motion on a 60 Hz timeline >= 0.9 (1.0 seen; 0.5 at 30 fps), even steps (alternation <= 0.3; 0.01 seen, 1.0 at 30 fps), RT64 interpolating >= 90 % of game frames, >= 60 % of transforms paired (87–98 %), <= 5 % in-between frames dropped (0), fps >= 28 |
 | | `hfr_cut` | pause -> RETRY: the host logs a camera cut and that frame is not interpolated |
 | menu / menu-reload (`tests/menu_session.py`, skipped with `--features` `menu=0`) | `menu_hint`, `menu_open_close`, `menu_blocks_pad`, `menu_settings_click`, `menu_pad`, `menu_persist` | the in-game settings menu: the one-time hint; Esc opens and closes it over the game (checked in the presented frame); it blocks the pad; clicks change Show FPS, MSAA and Aspect and reach `general.cfg` / `graphics.cfg`; pad navigation and the layout pick, the volume slider; the settings persist in a new process and the hint does not return |
+| menu-controls / menu-controls-reload / menu-ports (`tests/menu_session.py`, skipped with `--features` `menu=0`) | `menu_rebind_pad`, `menu_rebind_cancel`, `menu_rebind_key`, `menu_rebind_axis_reset`, `menu_rebind_pad_nav`, `menu_rebind_preset`; `menu_rebind_persist`; `menu_ports_swap`, `menu_ports_assign`, `menu_ports_keyboard_p1` | the Controls tab with virtual pads: rebind a controller slot (with a swap) and check the game's next input read, cancel by Esc / Back / the 5 s timeout, a keyboard slot and Backspace, a trigger and Default, pad-only navigation to a slot, the preset reset; the bindings persist in a new process; the Controllers list swaps players, gives a controller either player (with the live pressed line), and one controller on player 2 leaves the keyboard alone on player 1 |
 | course-cycle (`tests/course_cycle.py`) | `course_cycle` | four courses back to back (pause -> END RUN -> select): the host log shows a song load at every course start, with any old-song channels still reading the shared buffer stopped first (`src/music.cpp`, `Music_LoadSong` hook); no crash; 150 frames of the last course have music (RMS >= -40 dBFS) |
 
 Full run, 2026-10-12, USA v1.1, Europe and USA v1.0 (static build): **35 pass, 0 fail, 4 skipped** (the four need the optional launcher build).
@@ -409,5 +410,5 @@ Boot, frame pacing, audio, input, Controller Pak, widescreen and interpolation: 
   replays (`Video_Playback` camera switches) and the competition intro aren't tested yet.
   At 120 Hz (`refresh=display` on the built-in ProMotion panel) the defaults held 120 presents/s
   with no dropped frames (6.1 ms render per game frame).
-- Texture packs: not attempted. The in-game settings menu (Esc) has no rebinding of single keys or buttons yet (edit `controls.cfg`).
+- Texture packs: not attempted. The in-game settings menu (Esc) rebinds single keys and buttons in its Controls tab (saved to `controls.cfg`).
 

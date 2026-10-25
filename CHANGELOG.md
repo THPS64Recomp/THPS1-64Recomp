@@ -12,6 +12,14 @@ All notable changes to THPS1 64: Recompiled are listed here. The format is based
   thin black frame the game leaves for a TV's overscan. It shows a little more of the scene at the same size (no zoom). Off by
   default; menus and loading screens keep their own frame. In a two-player split screen, both views reach the edges
   too and meet at the game's thin divider line in the middle.
+- Rebinding in the settings menu: the Controls tab has a row per N64 input with two controller slots and two keyboard
+  slots. Choose a slot and press the new button or key; a button another action uses trades places with it, and
+  Default puts a row back. A slot that differs from the layout shows in yellow, and Reset all to default (it asks first)
+  puts every binding back. Changes work at once and are saved to `controls.cfg` ([MANUAL](docs/MANUAL.md#controls)).
+- A Controllers list in the Controls tab: which controller is player 1 or 2, what it is pressing right now, and buttons
+  to swap players or give a controller either player. One controller on player 2 with the keyboard alone on player 1
+  makes a two-player game with one controller. The choice lasts until you quit.
+- Test sessions `menu-controls`, `menu-controls-reload` and `menu-ports` (virtual pads).
 
 ### Changed
 - Built on THPS64Host v0.2.0.
