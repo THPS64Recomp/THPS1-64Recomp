@@ -7,6 +7,9 @@ All notable changes to THPS1 64: Recompiled are listed here. The format is based
 
 ## [Unreleased]
 
+### Changed
+- Built on THPS64Host v0.2.0.
+
 ## [0.1.0] - 2026-10-18
 
 The first public release, built on THPS64Host v0.1.0. It runs the USA v1.1, USA v1.0 and Europe releases of
