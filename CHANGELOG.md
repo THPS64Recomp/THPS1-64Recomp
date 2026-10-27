@@ -20,6 +20,14 @@ All notable changes to THPS1 64: Recompiled are listed here. The format is based
   to swap players or give a controller either player. One controller on player 2 with the keyboard alone on player 1
   makes a two-player game with one controller. The choice lasts until you quit.
 - Test sessions `menu-controls`, `menu-controls-reload` and `menu-ports` (virtual pads).
+- Draw distance (Graphics tab, `draw_distance` in `graphics.cfg`, `--draw-distance`): Original (the default, the game as it
+  was), 2x, 4x and Full (the whole course, including the scenery the game hides by area as you skate; secrets and
+  items a goal reveals stay hidden until the game shows them). It applies at once, shorter or longer, with no restart: the
+  game always gets a bigger matrix buffer at start-up and uses only its own part of it at Original. It steps back on its own if a frame comes close to
+  filling one of the game's buffers. Full also draws the scenery that skips the game's distance test but is hidden by
+  area (Downhill Jam's lower end: the pool, the blocks and the building below the BRETT wall no longer pop in as you come
+  over the edge). `dd_buffers = original` in `graphics.cfg` (`--dd-buffers original`; not in the menu)
+  keeps the game's own buffers and memory layout exactly; it needs a restart.
 
 ### Changed
 - Built on THPS64Host v0.2.0.

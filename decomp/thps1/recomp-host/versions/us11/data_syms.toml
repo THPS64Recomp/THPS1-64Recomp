@@ -17,6 +17,17 @@ gCheatSlowMotion       = 0x800DE860   # read by the frame update (us11 func_8003
 gCheatSkipToRestart    = 0x800DE848   # read by the pause menu builder (us11 func_80091974)
 gCareerSkaters         = 0x800DE9F4   # career: 10 skater records of 20 bytes (+8 tapes; the course select reads the current skater's)
 gCourseCursor          = 0x800C0E20   # course under the cursor (word, 0..8)
+gFarPlane              = 0x800D1E7C   # far plane (float) = fog end * 0.0625 (fog setter 0x8005E5CC); View_SetFrustum's far for the gameplay camera
+gDlBufSize             = 0x800FC894   # 0xFA00, stored just before the two buffers are allocated (0x800BE050 / 0x800BE268)
+gDlBufs                = 0x800FC8B0   # [2] display list buffers; the frame start sets the list head (0x800F36A4) to gDlBufs[0x800F32B8]
+gMtxPools              = 0x800FC8B8   # [2] matrix pools (32000 bytes each, allocated at 0x800BDA84); allocator 0x800BD9F4, count 0x800FC8C0
+gMtxScratch            = 0x800FC910   # what the allocator returns after 500 matrices in a frame
+gMainHeap              = 0x800EA110   # heap object (free list +0, last failed size +16, lock queue +20); the gfx set-up's a0 for the pools
+gMtxCount              = 0x800FC8C0   # Gfx_AllocMtx's count; zeroed at the frame start 0x800BE474
+gFrameIndex            = 0x800F32B8   # 0 / 1: the frame's display list and matrix pool (toggled at the frame end 0x800BE7C0)
+gWorldItems            = 0x800FA350   # course item list (World_DrawItems from 0x8003456C, World_SetVisibilityInBox: lui 0x8010 / addiu -0x5CB0)
+gMtxResetCount         = 0x800F36C0   # reset list count; entries (pointers to words the frame end zeroes) from 0x800F36C4 up to the next global 0x800F5608 (2001 slots); 6 adders, none checks
+gMeshQueue             = 0x800ECFE0   # mesh queue: Mesh_QueueInit 0x800B4978, its flush 0x800B5210 drops entries past 512 (`li t1,512` at 0x800B5448)
 gMusNumChannels        = 0x800FC2F0   # MUS library globals: channel count; MusHandleStop 0x800ABE14 / __MusIntMain 0x800AC8BC read both
 gMusChannels           = 0x800FC2F8   # MUS library globals: the channel records (304 bytes each)
 

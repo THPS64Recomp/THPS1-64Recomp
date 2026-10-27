@@ -13,6 +13,17 @@ gPhysicsFrameTime      = 0x800E9968
 gNameEntryBuf         = 0x800D2A38   # name entry: the 13-character name being typed (ASCII, lower case; 0x20 = blank); the slots are drawn from it
 gTvType                = 0x800E99BC
 gCourseTable           = 0x800D4F5C   # SELECT COURSE records (stride 0x78; CourseSelect_UpdateLock indexes it with gCourseCursor)
+gFarPlane              = 0x800D127C   # = v1.1 - 0xC00 (translate_data.py, 4 votes)
+gDlBufSize             = 0x800F98D4   # these four = v1.1 - 0x2FC0 (translate_data.py: 1-3 votes each, one shift for all)
+gDlBufs                = 0x800F98F0
+gMtxPools              = 0x800F98F8
+gMtxScratch            = 0x800F9950
+gMainHeap              = 0x800E9510   # the gfx set-up's a0 for the pools (lui 0x800F / addiu -0x6AF0, at 0x800A3E18)
+gMtxCount              = 0x800F9900   # = v1.1 - 0x2FC0, read in Gfx_AllocMtx 0x800A3D98
+gFrameIndex            = 0x800EAAD8   # = v1.1 - 0x87E0, read in Gfx_AllocMtx 0x800A3DB8
+gWorldItems            = 0x800F7700   # read in World_SetVisibilityInBox 0x80034484 (lui 0x800F / addiu 0x7700)
+gMtxResetCount         = 0x800EAEE0   # = v1.1 - 0x87E0, read in Gfx_FrameEnd's clear loop (0x800A4ABC); entries from 0x800EAEE4 to 0x800ECE28 (2001 slots)
+gMeshQueue             = 0x800ED0B0   # the a0 of all four calls to the queue init (lui 0x800F / addiu -0x2F50); the flush's cap code is the same as v1.1's
 gTimeScale             = 0x800DDCDC   # physics step: gPhysicsFrameTime * 7680 at the course start, halved there with slow motion
 gCheatPerfectBalance   = 0x800DDB80   # cheat flags, from the cheat-code handler's toggles (us11 func_80069064 / us10 func_80068844) and their readers
 gCheatSlowMotion       = 0x800DDBA0   # read by the frame update (us11 func_80035D08): halves the step; set clears fast motion

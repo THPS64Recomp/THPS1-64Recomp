@@ -128,7 +128,7 @@ the level.
 **Esc** (controller: **Back**) opens the settings menu over the game. Its tabs:
 - **General:** skip intro, show FPS;
 - **Controls:** the layout presets, the Controllers list and rebinding (see [Controls](#controls));
-- **Graphics:** aspect ratio, HUD placement, two-player split screen, picture border, resolution, MSAA, frame rate, window mode;
+- **Graphics:** aspect ratio, HUD placement, draw distance, two-player split screen, picture border, resolution, MSAA, frame rate, window mode;
 - **Sound:** volume;
 - **Cheats:** see [Cheats](#cheats).
 
@@ -151,6 +151,7 @@ Written with defaults on the first start.
 ### `graphics.cfg`
 A command-line flag overrides the value and **is saved back**.
 
+<!-- table-ok: our own settings, not game data -->
 | Key | Default | Values | Flag |
 |---|---|---|---|
 | `aspect` | `16:9` | `original` (4:3), `16:9`, `21:9`, `expand` (follow the window) | `--aspect` |
@@ -161,6 +162,8 @@ A command-line flag overrides the value and **is saved back**.
 | `hud` | `expand` | HUD placement in widescreen: `original` (the centred 4:3 area, as on a TV), `16:9` (the edges of a 16:9 picture), `expand` (the edges of the window's picture). No effect at `aspect original`. Menus, the pause menu and result pages always stay a centred 4:3 page. In a widened two-player split screen each player's HUD sits at the edge of their own view, with `original` too | `--hud X` |
 | `split` | `wide` | two-player split screen in widescreen: `wide` each player's view fills its half of the picture; `original` both views stay in the centred 4:3 area with black bands at the sides, as on a TV, and each player's HUD stays inside its view. No effect at `aspect original` | `--split X` |
 | `border` | `original` | the thin black frame around the 3D picture. The game draws its 3D 8 pixels in from each edge of its 320x240 frame, and a TV hid that edge. `original` keeps the frame; `fill` draws the picture all the way to the edges of the window, at every aspect ratio. Fill shows a little more of the scene at the same size: nothing is cut off and nothing is zoomed. Menus and loading screens keep their own frame | `--border X` |
+| `draw_distance` | `original` | how far the course is drawn: `original` (the N64 game's own distance), `2x`, `4x`, `full` (the whole course). The fog moves out with it. While a frame comes close to filling the game's display list or matrix buffer, the distance steps back on that course. It applies at once, shorter or longer, with no restart | `--draw-distance X` |
+| `dd_buffers` | `bigger` | the matrix buffer behind draw distance. `bigger` sets up a larger one when the game starts, whatever `draw_distance` says, so that switching draw distance works at once; at `original` distance the game still uses only its own part of it. `original` keeps the game's own memory layout exactly; draw distance still works, but steps back sooner in the busiest courses. Not in the menu. A change needs a restart of the game | `--dd-buffers X` |
 
 The file also holds a `cfg_rev` line that the app writes itself; leave it. Files from earlier builds that say
 `hud=original` (the old default) are moved to `expand` once; choose `original` again to keep it.
