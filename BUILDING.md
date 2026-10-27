@@ -23,7 +23,9 @@ All systems need git, Python 3.11 or newer, CMake 3.20 or newer, and Ninja.
 - **macOS:** Xcode or the Command Line Tools (with the Metal toolchain), plus `brew install cmake ninja sdl2 pkgconf`.
 - **Windows:** Visual Studio 2022 with the "C++ Clang Compiler for Windows" and "C++ CMake tools" components. The build
   uses clang-cl and finds Visual Studio itself. Clone to a short path (RT64 nests deeply) and turn on long paths first:
-  `git config --global core.longpaths true`.
+  `git config --global core.longpaths true`. Use `python` (or `py`) wherever this page says `python3`: on a stock
+  Windows PC, `python3` opens the Microsoft Store instead of running Python. To try the port on Windows, follow the
+  checklist in [WINDOWS-TEST.md](decomp/thps1/recomp-host/docs/WINDOWS-TEST.md).
 - **Linux:** clang or gcc and the SDL2, Vulkan, X11 and GTK 3 development packages (on Debian or Ubuntu:
   `ninja-build clang libsdl2-dev libvulkan-dev libx11-dev libgtk-3-dev`). Linux builds in CI but hasn't been run on a desktop.
 
@@ -60,8 +62,9 @@ On Windows, run the same command with `python` in a normal command prompt, or us
 `powershell -ExecutionPolicy Bypass -File decomp/thps1/recomp-host\tools\build_windows.ps1 -Rom <your dump>`. The binary is then
 `thps1_recomp.exe`; the release package names it `THPS1-64Recomp.exe`.
 
-Building more than one game? Share one runtime: `--runtime ~/thps64-runtime`. The first build sets it up (about 850 MB),
-and the other games reuse it. `tools/check.sh` uses the folder in `THPS_RUNTIME_DIR` the same way.
+The runtime (about 850 MB) is set up in the build folder. To keep it elsewhere, or to share one between games, pass
+`--runtime ~/thps64-runtime`. Set `THPS_RUNTIME_DIR` to that folder too, and `tools/check.sh` uses it as well instead of
+setting up its own. (Without it, `check.sh` reuses the runtime of your last build if there is one.)
 
 ### Other builds
 
@@ -124,8 +127,26 @@ decomp/thps1/recomp-host/tools/test.sh             # the whole suite; exit code 
 decomp/thps1/recomp-host/tools/test.sh --first-run # the first-start flow of the split build
 ```
 
-The suite finds your dump through `$THPS1_ROM`, or `--rom`. Only one copy of the game may run at a time, so close
-it before running tests. On Windows, run `test.sh` from Git Bash.
+`--first-run` tests the split engine, so build that first with `build_host.py --split` (see "Other builds").
+
+The suite finds your dump through `$THPS1_ROM`, or `--rom`. On Windows, run `test.sh` from Git Bash, and write the path
+the Windows way: `export THPS1_ROM="C:/path/to/dump.z64"`. Only one copy of the game may run at a time, so close it
+before running tests.
+
+Each run keeps its pictures and logs in `decomp/thps1/recomp-host/build/tests/out/` (a few GB for a whole suite). You can
+delete that folder when you're done.
+
+**Other releases.** The suite runs on USA v1.1 by default. To test Europe, set `THPS1_ROM_EU` to your Europe dump and record
+its pictures once:
+
+```sh
+decomp/thps1/recomp-host/tools/test.sh --version thps1_eu --record   # records Europe's own pictures, then runs the suite
+decomp/thps1/recomp-host/tools/test.sh --version thps1_eu            # later runs
+```
+
+Most screens look the same as in USA v1.1 and use its pictures. The few that differ get their own (Europe: the LOAD DATA
+list with a saved note). USA v1.0 works the same way, with `--version thps1_us10` and `THPS1_ROM_US10`; it needs no
+pictures of its own.
 
 Some checks need no dump: `test.sh --controls-cfg`, `test.sh --gfx-cfg`, and
 `python3 -I decomp/thps1/recomp-host/tools/gen_versions.py check` (the version tables).
