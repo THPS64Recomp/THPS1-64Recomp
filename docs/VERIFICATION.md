@@ -43,7 +43,8 @@ The first-run tests (`decomp/common/host/tests/firstrun_test.py`: build from a d
 with 0 failures for the three releases.
 
 `tests/run.py --version ID` selects the release (`thps1`, `thps1_us10`, `thps1_eu`); a release's reference pictures live in
-their own folder and fall back to its sibling's where the screen is identical.
+their own folder and fall back to its sibling's where the screen is identical. The screens that differ are listed in
+`tests/scenarios.py` (`OWN_REFS`), and `test.sh --version ID --record` records them.
 
 <!-- table-ok: the regression scenarios by group, described by what they check -->
 | Group | Scenarios | What they check |

@@ -335,7 +335,10 @@ its `record` field, and writes `build/tests/refs/sheet.png` (+ `sheet.txt` with
 the order). Look at the sheet, check that every frame is the screen its name
 says, then run `tools/test.sh --check-refs`: every other reference must be more
 than 1.2 x the tolerance away. Then run `tools/test.sh` twice. To redo them all,
-use `--rerecord`. Matching is resolution-independent: regions are fractions of
+use `--rerecord`. Another release's references go in `build/tests/refs-<ID>/` and
+fall through to the first release's; the screens that differ are listed in
+`OWN_REFS` (`tests/scenarios.py`), and `tools/test.sh --version <ID> --record`
+records them. Matching is resolution-independent: regions are fractions of
 the frame, compared as normalised luma grids (fade- and brightness-proof), or for
 the HUD as a colour template of the reference's bright pixels.
 

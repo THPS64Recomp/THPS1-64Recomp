@@ -17,6 +17,12 @@ the others blue/white, so the cursor row is the strongest gold band inside `y_ra
 the nearest of `rows` (centres as fractions of the frame height).
 """
 
+# Checkpoints whose screen differs on another release, by version id: that release needs its own reference for them, recorded with
+# `tools/test.sh --version ID --record` (every other checkpoint uses the first release's picture; games.toml `refs_from`).
+OWN_REFS = {
+    "thps1_eu": ["load_data_list"],
+}
+
 # name: size, regions [(region (x0, y0, x1, y1), gw, gh, tol)], record
 # A region (region, "mask", luma_min, min_frac) is a template match instead: at least min_frac
 # of the reference's pixels brighter than luma_min must have the same colour (for HUD text over
