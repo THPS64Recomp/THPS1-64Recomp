@@ -47,6 +47,9 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
   0.4 s, at the first level after the start.
 - With the window hidden or covered, the app stops presenting frames; the game keeps running.
 - Apple GPUs have no 8x MSAA; asking for it turns MSAA off.
+- **Draw distance:** 2x, 4x and Full were checked on one 15-second ride per course (all at 30 fps), not in long play, two-player
+  split screen or the competition cameras. The step back reacts one frame late, so in a very busy view one frame can show an
+  object out of place. At Full the fog is effectively off.
 
 ## Stability
 

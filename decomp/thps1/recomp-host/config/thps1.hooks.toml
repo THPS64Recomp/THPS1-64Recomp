@@ -69,6 +69,51 @@ text = "if (thps_widen_cull_planes(rdram, ctx)) return;"
 func = "View_SetFrustum"
 text = "if (thps_view_set_frustum(rdram, ctx)) return;"
 
+# Draw distance (game/draw_distance.cpp): Mesh_QueueEmit turns the renderer's mesh queue (512 entries; past that the game drops meshes)
+# into display-list commands. The hook notes how many entries the pass used, so the governor can keep a longer far plane from filling
+# it. Read only.
+[[patches.hook]]
+func = "Mesh_QueueEmit"
+text = "thps_mesh_queue_emit(rdram, ctx);"
+
+# Draw distance (game/draw_distance.cpp): with a far plane longer than the game's, World_DrawItems runs several times, the items only the
+# longer far plane reaches in passes of their own (farthest first), then the rest, so each pass fits the mesh queue's 512 entries. With the
+# game's own far plane the body runs once, as is. With "full" it also unhides the items the zone culling hid (World_SetVisibilityInBox
+# below) for the call, draws them in those passes too, and puts every flag back after it.
+[[patches.hook]]
+func = "World_DrawItems"
+text = "if (thps_world_draw_items(rdram, ctx)) return;"
+
+# Draw distance (game/draw_distance.cpp): when the setting is not `original` at start-up, the gfx set-up's two Heap_Alloc requests for the
+# matrix pools (500 x 64 bytes each) ask for 2048 matrices each, and Gfx_AllocMtx then caps at 2048 instead of 500. Otherwise both hooks
+# return at once and the game's bodies run as is.
+[[patches.hook]]
+func = "Heap_Alloc"
+text = "if (thps_mem_alloc(rdram, ctx)) return;"
+
+[[patches.hook]]
+func = "Gfx_AllocMtx"
+text = "if (thps_gfx_alloc_mtx(rdram, ctx)) return;"
+
+# Draw distance (game/draw_distance.cpp): Gfx_FrameEnd clears the frame's reset list (about 2000 slots; the game never checks its count).
+# The hook notes the count, so the governor can keep a longer far plane from filling it. Read only.
+[[patches.hook]]
+func = "Gfx_FrameEnd"
+text = "thps_gfx_frame_end(rdram, ctx);"
+
+# Draw distance "full" (game/draw_distance.cpp): World_SetVisibilityInBox is the trigger scripts' zone culling (hide / show every course
+# item in a box, as the skater moves). The hook runs the game's function and notes which hidden bits it changed, so World_DrawItems' hook
+# can unhide exactly those for the draw call (and put them back after it).
+[[patches.hook]]
+func = "World_SetVisibilityInBox"
+text = "if (thps_world_set_visibility_in_box(rdram, ctx)) return;"
+
+# Draw distance "full" (game/draw_distance.cpp): World_FindItem(list, name) is how anything addresses one course item by name (the
+# scripts' per-item hide commands, goal code). The hook runs it and marks the item it returns: such an item is never unhidden.
+[[patches.hook]]
+func = "World_FindItem"
+text = "if (thps_world_find_item(rdram, ctx)) return;"
+
 # Skip Intro (src/skip_intro.cpp, General tab / --skip-intro). Front_IntroUpdate is the legal
 # screen + logo videos screen; it returns 3 when it is done (START after the legal screen's
 # minimum time, or the last logo), and the front end then shows the title. With Skip Intro on,

@@ -1218,10 +1218,193 @@ SESSIONS += [
     ]),
 ]
 
+# Draw distance (2026-10-17): free skate in one course. At the start spot (the same for every
+# setting) a composited frame, triangle counts and buffer use for each factor in DD_AB, then (with the setting from DD_ARGS) the camera
+# swung round and a ride with frame times. Exploration only (optin).
+# DD_RIGHTS: RIGHT presses at the course select; DD_TAG: output folder name; DD_ARGS: extra host args (e.g. "--draw-distance 2x");
+# DD_AB: factors to compare at the start ("1 2 4 8"; empty = none).
+_DD_DIR = _os.path.join(_os.environ.get("DD_OUT", "/tmp/dd"), _os.environ.get("DD_TAG", "run"))
+_DD_SHOT = lambda name: [("ctl", f"pcap 1 {_DD_DIR}/{name}"), ("wait", 3), ("ctl", "pcap 0"), ("wait", 10)]
+# DD_TRACE=1: a dltrace of each factor's frame too (the host log's [trace] lines, after "ok dltrace task=N").
+# DD_AB entries "K[:S]": factor K, with `dd showall S` first when given (64:0 / 64:auto = the zone-culled items off / on in the same frame).
+_DD_ABP = lambda pre: [s for t in _os.environ.get("DD_AB", "1 2 4 8").split() for k, sa in [(t.split(":") + [""])[:2]] for s in (
+    *([("ctl", f"dd showall {sa}")] if sa else []),
+    ("ctl", f"dd factor {k}"), ("ctl", "dd reset"), ("wait", 20), *_DD_SHOT(f"{pre}_x{k}{'_s' + sa if sa else ''}"), ("dl", 30, 0), ("ctl", "dd"),
+    *([("ctl", "dltrace 1"), ("wait", 10)] if _os.environ.get("DD_TRACE") else []))]
+_DD_AB = _DD_ABP("start")
+_DD_RIDE_STEPS = lambda ride: [s for st in ride.split() for s in (
+    (("ctl", f"vpad axis leftx {st.split(':')[0][2:]}"),) if st.startswith("x=") else (("ctl", f"vpad axis lefty {st.split(':')[0]}"),)) +
+    (("wait", int(st.split(':')[1])),)]
+# DD_VANTAGES "ride1;ride2": after the start comparison, unpause, ride on (DD_RIDE syntax), pause and compare again (v1_x.., v2_x..).
+# DD_CLEAN=1: before each pause also an unpaused x1 and x64 frame (no pause menu over the picture; the skater stands, so nearly the same frame).
+# DD_FLIP=1: instead, unpaused, a few consecutive frames with the zone-culled items hidden, then a few with them drawn (`dd showall 0` /
+# `auto`; the skater moves only a frame or two in between): what "full" adds, wherever the skater is.
+_DD_FLIP = lambda pre: [("ctl", "dd showall 0"), ("wait", 4), ("ctl", f"pcap 1 {_DD_DIR}/{pre}_flip_s0"), ("wait", 4), ("ctl", "pcap 0"),
+                        ("ctl", "dd showall auto"), ("wait", 4), ("ctl", f"pcap 1 {_DD_DIR}/{pre}_flip_sauto"), ("wait", 4), ("ctl", "pcap 0")]
+_DD_CLEAN = lambda pre: _DD_FLIP(pre) if _os.environ.get("DD_FLIP") else [s for t in (_os.environ.get("DD_AB", "1 2 4 8").split() if _os.environ.get("DD_CLEAN") else []) for k, sa in [(t.split(":") + [""])[:2]] for s in (
+    *([("ctl", f"dd showall {sa}")] if sa else []), ("ctl", f"dd factor {k}"), ("wait", 20), *_DD_SHOT(f"{pre}_clean_x{t.replace(':', '_s')}"))]
+_DD_VANTAGES = [s for n, ride in enumerate([v for v in _os.environ.get("DD_VANTAGES", "").split(";") if v.strip()], 1) for s in (
+    ("press", "START"), ("wait", 45), ("vpad", "attach"), *_DD_RIDE_STEPS(ride),
+    ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0"), ("wait", 30), *_DD_CLEAN(f"v{n}"), ("press", "START"), ("wait", 45), *_DD_ABP(f"v{n}"))]
+SESSIONS += [
+    dict(name="dd-probe", config="dd-config", fresh_pak=True, wav=False, optin=True,
+         args=["--skip-intro", "--hidden", "--unlock-levels", "--present-size", "960x540", "--aspect", "16:9", "--window", "1280x720",
+               "--refresh", "60"] + _os.environ.get("DD_ARGS", "").split(),
+         scenarios=[
+        ("dd_probe", "draw distance: start spot per factor (frame, triangles, buffers), camera swing, ride with frame times", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            *[s for _ in range(int(_os.environ.get("DD_RIGHTS", "0"))) for s in (("press", "RIGHT"), ("wait", 12))],
+            ("shot", "course_select"),
+            ("press", "A"), ("wait", 600),
+            # DD_EARLY=N: the level's first frames in N windows of 5 frames, buffers per window (and every 2nd frame captured)
+            *([("ctl", f"pcap 2 {_DD_DIR}/early"), ("ctl", "dd reset"), ("press", "A"),
+               *[s for _ in range(int(_os.environ["DD_EARLY"])) for s in (("wait", 5), ("ctl", "dd"), ("ctl", "dd reset"))], ("ctl", "pcap 0")]
+              if _os.environ.get("DD_EARLY") else [("press", "A"), ("wait", 300)]),
+            ("shot", "in_level"),
+            ("ctl", "dd"),
+            *([("ctl", f"ramsave {_DD_DIR}/ram_start.bin")] if _os.environ.get("DD_RAMSAVE") else []),
+            # DD_PRE "KEY:frames ...": presses before the ride, with a shot after each (with --skip-to-restart in DD_ARGS: START, then the pause
+            # menu's SKIP TO RESTART, the 4th row, to one of the course's restart points: repeatable spots all over the course)
+            *[s for st in _os.environ.get("DD_PRE", "").split() for s in (("press", st.split(":")[0]), ("wait", int(st.split(":")[1])), ("shot", "pre"))],
+            # DD_RIDE "lefty:frames lefty:frames ..." (stick y, negative = forward; leftx with x=) before the comparison: to a spot with a long view
+            # (DD_RIDECAP=N: every Nth composited frame of it, in ridecap/)
+            ("vpad", "attach"),
+            *([("ctl", f"pcap {_os.environ['DD_RIDECAP']} {_DD_DIR}/ridecap")] if _os.environ.get("DD_RIDECAP") else []),
+            *[s for st in _os.environ.get("DD_RIDE", "").split() for s in (
+                (("ctl", f"vpad axis leftx {st.split(':')[0][2:]}"),) if st.startswith("x=") else (("ctl", f"vpad axis lefty {st.split(':')[0]}"),)) +
+                (("wait", int(st.split(':')[1])),)],
+            *([("ctl", "pcap 0")] if _os.environ.get("DD_RIDECAP") else []),
+            ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0"),
+            *_DD_CLEAN("start"),
+            *([("press", "START"), ("wait", 45)] if _os.environ.get("DD_PAUSE", "1") == "1" else []),   # paused: the same picture for every factor
+            *_DD_AB,
+            *_DD_VANTAGES,
+            # DD_CTL "cmd1;cmd2;..." at the paused spot after DD_AB (exploration: "dd factor 2;dltrace 1;dd factor 4;dltrace 1")
+            *[s for c in _os.environ.get("DD_CTL", "").split(";") if c.strip() for s in (("ctl", c.strip()), ("wait", 20))],
+            ("ctl", "dd mode " + _os.environ.get("DD_MODE", "original")),
+            *([("ctl", "dd factor " + _os.environ["DD_FACTOR"])] if _os.environ.get("DD_FACTOR") else []),   # exploration: any factor
+            *([("ctl", "dd testcap " + _os.environ["DD_TESTCAP"])] if _os.environ.get("DD_TESTCAP") else []),   # exercise the governor
+            ("ctl", "dd reset"),
+            *([("press", "START"), ("wait", 45)] if _os.environ.get("DD_PAUSE", "1") == "1" else []),
+            ("vpad", "attach"),
+            ("ctl", "vpad axis lefty 32767"), ("wait", 120), ("ctl", "vpad axis lefty 0"), ("wait", 40),
+            *_DD_SHOT("back"),
+            ("dl", 30, 0),
+            ("ctl", "ftime start"),
+            *([("ctl", f"pcap {_os.environ['DD_TOUR']} {_DD_DIR}/tour")] if _os.environ.get("DD_TOUR") else []),   # every Nth composited frame of the ride
+            ("ctl", "vpad axis lefty -32767"),
+            # DD_BURSTS=N: N short bursts of consecutive frames along the ride (b0, b1, ...: pairs of runs line up within a burst)
+            *[s for k in range(int(_os.environ.get("DD_BURSTS") or "0")) for s in (("wait", 40), *_DD_SHOT(f"b{k}"),
+                                                                              ("ctl", f"vpad axis leftx {(-32767, 0, 32767, 0)[k % 4]}"))],
+            ("wait", 150),
+            *_DD_SHOT("ride1"),
+            *[s for k in range(6) for s in (("ctl", f"vpad axis leftx {32767 if k % 2 else -32767}"), ("wait", 20), ("ctl", "vpad axis leftx 0"), ("wait", 20))],
+            *_DD_SHOT("ride2"),
+            ("dl", 30, 0),
+            *([("ctl", "pcap 0")] if _os.environ.get("DD_TOUR") else []),
+            ("ctl", f"ftime stop {_DD_DIR}/ftime.csv"),
+            ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0"), ("wait", 20),
+            ("ctl", "dd"), ("ctl", "stats"),
+        ]),
+    ]),
+]
+# Heap headroom with the always-allocated 2048-matrix pools (2026-10-22, the private development notes; optin, measurement): FREE SKATE,
+# DH_COURSES courses back to back in one process (from the course select's DH_FIRST-th course, Warehouse = 0),
+# each loaded, skated ~12 s and ended (END RUN -> LEVEL SELECT). `dd heap` before each course (its reply has the previous course's
+# low-water marks, then resets them), after the load, after the ride and after the exit. DD_ARGS: extra host args
+# (e.g. "--draw-distance full", "--dd-buffers original").
+_DH_PLAY = [("ctl", "vpad axis lefty -32767"),
+            *[x for k in range(12) for x in (("ctl", f"vpad axis leftx {(-32767, 0, 32767, 0)[k % 4]}"),
+                                             ("ctl", "vpad button a 1"), ("wait", 8), ("ctl", "vpad button a 0"), ("wait", 22))],
+            ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0")]
+SESSIONS += [
+    dict(name="dd-heap", config="dd-heap-config", fresh_pak=True, wav=False, optin=True,
+         args=["--skip-intro", "--hidden", "--unlock-levels"] + _os.environ.get("DD_ARGS", "").split(), scenarios=[
+        ("dd_heap", "heap headroom: courses back to back, `dd heap` low-water marks per course", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            *[s for i in range(int(_os.environ.get("DH_COURSES", "9"))) for s in (
+                # FREE SKATE's course select starts at Warehouse again after END RUN
+                *[s for _ in range(int(_os.environ.get("DH_FIRST", "0")) + i) for s in (("press", "RIGHT"), ("wait", 12))],
+                ("shot", f"select_{i}"),
+                ("ctl", "dd heap reset"),
+                ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300),
+                ("shot", f"in_level_{i}"),
+                ("ctl", "dd heap"),
+                *([("vpad", "attach")] if i == 0 else []),
+                *_DH_PLAY,
+                ("ctl", "dd heap"), ("ctl", "dd"),
+                ("press", "START"), ("wait", 45), ("menu", "pause", 3), ("press", "A"), ("wait", 90),
+                ("press", "DOWN"), ("press", "A"), ("wait_for", "level_select"), ("wait", 30),
+                ("ctl", "dd heap"))],
+            ("ctl", "dd heap"),
+        ]),
+    ]),
+]
 # Course cycle (src/music.cpp; the THPS2 crash after a few courses, 2026-10-17: THPS1 has the same music player): Warehouse, School,
 # Downtown, Downhill Jam back to back in a career (Chicago is a competition), each ended from the pause menu: END RUN -> statistics ->
 # the post-run menu -> LEVEL SELECT. The course select keeps its cursor on the last course (RIGHT moves it).
 from course_cycle import course_cycle_session, LOAD_LINE  # noqa: E402
+# Draw distance Full and the game's events (2026-10-22): Full unhides the course items the trigger scripts hide by area, never the ones an
+# event hides. Mall, free skate, no input: the skater rolls down the start corridors and through the CLOSED / CERRADO signs at the end of
+# the CITY MALL tunnel; breaking them hides course items 356 and 359 by name (flags 0x1061: the trigger command's hide by name 0x80035250,
+# so World_FindItem marks them as event-owned). Before: drawn; after: hidden for good, also with Full.
+SESSIONS += [dict(name="dd-event", config="dd-event-config", fresh_pak=True, wav=False,
+    args=["--skip-intro", "--hidden", "--unlock-levels", "--draw-distance", "full", "--window", "960x540"], scenarios=[
+    ("dd_event_item", "draw distance full: the Mall signs the skater breaks stay hidden afterwards (event-owned), before that they are drawn", [
+        ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+        ("press", "RIGHT"), ("wait", 12), ("press", "RIGHT"), ("wait", 12),
+        # The A that starts the run is pressed until the course is on screen (the HUD checkpoint): with a fixed wait a slow load once
+        # swallowed it, the run started late and the no-input roll had not reached the signs when they were checked. Mall's tips screen
+        # does not match the shared `tips_ready` reference, so the in-level checkpoint is the anchor.
+        ("press", "A"), ("wait", 600), ("go", "A", None, "in_level"), ("wait", 30),
+        ("ctl_match", "dd item 356", r"event 0 drawn 1"),
+        ("ctl_match", "dd item 359", r"event 0 drawn 1"),
+        ("ctl_same", "dd item 356", r" named (\d+) ", "named"),   # what the course's set-up scripts named
+        ("shot", "before_signs"),
+        ("wait", 900),
+        ("shot", "after_signs"),
+        ("ctl_match", "dd item 356", r"flags 0x1061 zone 0x00 event 1 drawn 0"),
+        ("ctl_match", "dd item 359", r"flags 0x1061 zone 0x00 event 1 drawn 0"),
+        ("go", "START", "in_level", "pause"),   # a pause is not a new course: the record and its event ownership stay
+        ("wait", 60), ("go", "START", "pause", "in_level"), ("wait", 10),
+        ("ctl_match", "dd item 356", r"flags 0x1061 zone 0x00 event 1 drawn 0"),
+    ]),
+    # RETRY rebuilds the course, with the item list at the same address and count (review 2026-10-26, finding 7): the zone record starts
+    # again, so the signs are the game's again (not event-owned, drawn) and the event-owned items are exactly what the set-up named (before
+    # the fix the record survived the RETRY: the signs stayed event-owned, `named` two more).
+    ("dd_event_retry", "pause > RETRY: the signs are back and not event-owned; event ownership is the new run's", [
+        ("go", "START", "in_level", "pause"), ("menu", "pause", 1), ("press", "A"), ("wait", 300), ("go", "A", None, "in_level"), ("wait", 30),
+        ("ctl_match", "dd item 356", r"event 0 drawn 1"),
+        ("ctl_match", "dd item 359", r"event 0 drawn 1"),
+        ("ctl_same", "dd item 356", r" named (\d+) ", "named"),
+        ("ctl_match", "dd", r"course_starts=[2-9]"),
+    ]),
+    # Governor feedback across a transition (review 2026-10-26, finding 6), deterministic: `dd stale 99` gives a 99 % sample measured across
+    # a transition and one built before it, in one critical section: both dropped, Full keeps its ceiling. `dd feed 99` (the control case)
+    # gives a current one once the settle is over: it panics.
+    ("dd_stale_feedback", "a stale buffer sample after a setting change is dropped; a current one still acts", [
+        ("ctl", "dd mode full"), ("wait", 10), ("ctl", "dd reset"),
+        ("ctl_match", "dd stale 99", r"ceiling=64\.00 .* panics=0 .* stale_dropped=1 settle_dropped=[1-9]"),
+        ("wait", 10),
+        ("ctl_match", "dd feed 99", r"ceiling=(?!64\.00)\d.* panics=1 "),
+        ("ctl_match", "dd mode full", r"ceiling=64\.00 "),
+    ]),
+])]
+# Downhill Jam's lower end (the pool, blocks, the building below the BRETT wall) is 27 items with flag 0x2000 (no sphere test), zone-hidden
+# at the start; "full" draws them too (until 2026-10-23 they were left hidden and popped in as the skater came over the edge). Item 133 is
+# one of them. (The flags may read with the hidden bits cleared when the reply lands during the draw call: 0x2000.)
+SESSIONS += [dict(name="dd-downhill", config="dd-downhill-config", fresh_pak=True, wav=False,
+    args=["--skip-intro", "--hidden", "--unlock-levels", "--draw-distance", "full", "--window", "960x540"], scenarios=[
+    ("dd_downhill_end", "draw distance full: Downhill Jam's zone-hidden 0x2000 items (the lower end) are drawn from the start", [
+        ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+        *[s for _ in range(5) for s in (("press", "RIGHT"), ("wait", 12))],
+        ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 60),
+        ("shot", "in_level"),
+        ("ctl_match", "dd item 133", r"flags 0x20(41|00) zone 0x41 event 0 drawn 1"),
+        ("ctl_match", "dd item 214", r"flags 0x20(41|00) zone 0x41 event 0 drawn 1"),
+    ]),
+])]
+
 SESSIONS += [course_cycle_session(
     "course-cycle", [("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 0), ("go", "A", "main_menu", "career_menu"),
                      ("menu", "career", 1), *TO_LEVEL_SELECT],
@@ -1449,3 +1632,144 @@ SESSIONS += [load_freeze_session("lf-probe", **_LF, hidden=False, optin=True, li
 # when the machine is overloaded). Before the v0.2 fixes (ERZ decoder, native memset / memcpy) every start was over it.
 LF_GAME_MS = 130.0   # 2026-10-18: 64-107 ms after the fixes (load 4-5), 120-222 ms before (load 9-11)
 SESSIONS += [load_freeze_session("lf-check", **{**_LF, "courses": _LF["courses"][:3]}, limits={"game": 1000.0}, median=("game", LF_GAME_MS))]
+# Draw distance in a two-player split screen (2026-10-21; optin, exploration): TWO PLAYERS > GRAFFITI as in `two-players`, with DD2P_RIGHTS
+# RIGHT presses (pad 1's dpad) at the course select (the DD2P_AT-th selection press, counted from 0), then paused: x1 / x64 frames and
+# dltraces as in dd-probe (DD_AB, DD_TRACE), then unpaused with the setting from DD_ARGS / DD_MODE, a ride of both players and the buffers.
+def _dd2p_select():
+    seq = [("vpress", "a"), ("vpress", "a"), ("vpress2", "a"), ("vpress", "a"), ("vpress2", "a"), ("vpress", "a"), ("vpress2", "a"), ("vpress", "a"), ("vpress2", "a")]
+    at, n, out = int(_os.environ.get("DD2P_AT", "-1")), int(_os.environ.get("DD2P_RIGHTS", "0")), []
+    for i, st in enumerate(seq):
+        if i == at:
+            out += [s for _ in range(n) for s in (("vpress", "dpright"), ("wait", 12))] + [("shot", "course_select")]
+        out += [st, ("wait", 40 if i < len(seq) - 1 else 200)]
+        if _os.environ.get("DD2P_SHOTS"): out.append(("shot", f"sel{i}"))
+    return out
+SESSIONS += [
+    dict(name="dd-2p", config="dd-2p-config", fresh_pak=True, wav=False, optin=True,
+         args=["--skip-intro", "--hidden", "--unlock-levels", "--present-size", "960x540", "--aspect", "16:9", "--window", "1280x720",
+               "--refresh", "60"] + _os.environ.get("DD_ARGS", "").split(),
+         scenarios=[
+        ("dd_2p", "draw distance in two-player split screen: paused frames and traces per factor, a ride, buffers", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"),
+            ("vpad", "attach"), ("vpad2", "attach"),
+            ("vpress", "leftshoulder"), ("vpress2", "leftshoulder"),
+            ("log_n", r"Virtual Controller takes port 2", 1),
+            ("menu", "main", 1),
+            *_dd2p_select(),
+            ("ctl_match", "inputstate", r"in3d=1"),
+            ("shot", "in_level"), ("ctl", "dd"), ("ctl", "dd heap"),
+            *_TWO_PLAYERS_PAUSE,
+            *_DD_AB,
+            ("ctl", "dd mode " + _os.environ.get("DD_MODE", "original")), ("ctl", "dd reset"),
+            ("ctl", "vpad button start 1"), ("wait", 10), ("ctl", "vpad button start 0"), ("wait", 45),
+            ("ctl", "ftime start"),
+            ("ctl", "vpad axis lefty -32767"), ("ctl", "vpad2 axis lefty -32767"), ("wait", 150),
+            *_DD_SHOT("ride1"),
+            *[s for k in range(4) for s in (("ctl", f"vpad axis leftx {32767 if k % 2 else -32767}"), ("ctl", f"vpad2 axis leftx {-32767 if k % 2 else 32767}"),
+                                            ("wait", 25), ("ctl", "vpad axis leftx 0"), ("ctl", "vpad2 axis leftx 0"), ("wait", 25))],
+            *_DD_SHOT("ride2"),
+            ("ctl", f"ftime stop {_DD_DIR}/ftime.csv"),
+            ("ctl", "vpad axis lefty 0"), ("ctl", "vpad2 axis lefty 0"), ("wait", 20),
+            ("ctl", "dd"), ("ctl", "stats"), ("ctl", "dd heap"),
+        ]),
+    ]),
+]
+
+# Draw distance's matrix pools (2026-10-22, the private development notes): with dd_buffers = bigger (the default) the game gets pools of
+# 2048 matrices once at start-up and keeps its own cap (500) at `original`, so the setting takes effect at once, both ways; with
+# --dd-buffers original the game's own pools (500) whatever the setting.
+_DDB_TO_LEVEL = [("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT, ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300)]
+SESSIONS += [
+    dict(name="dd-buffers", config="dd-buffers-config", fresh_pak=True, wav=False,
+         args=["--skip-intro", "--hidden", "--draw-distance", "original", "--dd-buffers", "bigger"], scenarios=[
+        ("dd_buffers_now", "default buffers: pools of 2048 with the game's cap 500 at Original; Full raises the cap at once, Original puts it back", [
+            *_DDB_TO_LEVEL,
+            ("ctl_match", "dd heap", r"mtx_pool 2048 mtx_cap 500 "),
+            ("ctl_match", "dd", r"buffers=bigger .* mtx_cap=500 "),
+            ("ctl", "dd mode full"), ("wait", 30),
+            ("ctl_match", "dd heap", r"mtx_pool 2048 mtx_cap 2048 "),
+            ("ctl_match", "dd", r"mtx_cap=2048 "),
+            ("ctl", "dd mode original"), ("wait", 30),
+            ("ctl_match", "dd heap", r"mtx_pool 2048 mtx_cap 500 .* failed_calls 0 "),
+        ]),
+    ]),
+    dict(name="dd-buffers-own", config="dd-buffers-own-config", fresh_pak=True, wav=False,
+         args=["--skip-intro", "--hidden", "--draw-distance", "original", "--dd-buffers", "original"], scenarios=[
+        ("dd_buffers_own", "--dd-buffers original: the game's own pools (500), at Original and at Full", [
+            *_DDB_TO_LEVEL,
+            ("ctl_match", "dd heap", r"mtx_pool 500 mtx_cap 500 "),
+            ("ctl_match", "dd", r"buffers=original .* mtx_cap=500 "),
+            ("ctl", "dd mode full"), ("wait", 30),
+            ("ctl_match", "dd heap", r"mtx_pool 500 mtx_cap 500 "),
+            ("ctl", "dd mode original"),
+        ]),
+    ]),
+    # Opt-in demo: Downtown at Original, then Graphics > Draw Distance > Full in the menu in the middle of the run, a ride: the pool use goes past
+    # the game's 500 with no restart (`dd`: mtx_hw > 500, mtx_capped=0). DD_ARGS: extra host args.
+    dict(name="dd-switch", config="dd-switch-config", fresh_pak=True, wav=False, optin=True, requires="menu",
+         fresh_files=["graphics.cfg"],
+         args=["--skip-intro", "--hidden", "--unlock-levels", "--window", "1280x720", "--draw-distance", "original"] + _os.environ.get("DD_ARGS", "").split(), scenarios=[
+        ("dd_switch", "switch Original -> Full in the menu mid-run: the matrix pool use passes 500 at once", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            *[s for _ in range(4) for s in (("press", "RIGHT"), ("wait", 12))],
+            ("shot", "select"),
+            ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300),
+            ("shot", "in_level_original"),
+            ("ctl", "dd reset"), ("wait", 60),
+            ("ctl_match", "dd", r"mode=original .* mtx_cap=500 "),
+            ("ui", "esc"), ("ui_state", "open=1"), ("ui", "tab 2"), ("ui", "click #lbl_dd_full"), ("log", r"draw distance: full"), ("ui", "esc"),
+            ("ctl", "dd reset"),
+            ("vpad", "attach"),
+            ("ctl", "vpad axis lefty -32767"), ("wait", 150), ("ctl", "vpad axis lefty 0"), ("wait", 30),
+            # pause -> END RUN -> RETRY: the course starts again (the game is not restarted); Downtown's start overview takes ~560 pool matrices at Full
+            ("press", "START"), ("wait", 45), ("menu", "pause", 3), ("press", "A"), ("wait", 90), ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300),
+            ("shot", "in_level_full"),
+            ("ctl_match", "dd", r"mode=full .* mtx_hw=(50[1-9]|5[1-9]\d|[6-9]\d\d|1\d\d\d|20[0-4]\d) mtx_cap=2048 "),   # past the game's 500, no restart
+            ("ctl_match", "dd", r"mtx_capped=0 "),
+            ("ctl", "dd heap"),
+        ]),
+    ]),
+]
+
+import os as _os  # noqa: E402
+# Frame pacing in a visible window (2026-10-23, the user's "stuttery" report; optin): the title left alone until the attract demo runs
+# (frame times over PACE_DEMO frames), or with PACE_MODE=ride the first course (frame times over a 12 s ride). PACE_ARGS: host args (e.g.
+# "--refresh 60" or "--refresh display"). Run it with THPS1_BINARY of the build to compare.
+_PACE_RIDE = [("ctl", "vpad axis lefty -32767"),
+              *[x for k in range(12) for x in (("ctl", f"vpad axis leftx {(-32767, 0, 32767, 0)[k % 4]}"), ("wait", 30))],
+              ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0")]
+SESSIONS += [
+    dict(name="pace", config="pace-config", fresh_pak=True, wav=False, optin=True, fresh_files=["graphics.cfg"],
+         args=["--skip-intro", "--window", "1280x720"] + _os.environ.get("PACE_ARGS", "").split(), scenarios=[
+        ("pace", "frame pacing: attract demo and a ride, ftime in a visible window", [
+            *([("wait_for", "title"), ("wait", int(_os.environ.get("PACE_IDLE", "600"))), ("shot", "demo"),
+               ("ctl", "ftime start"), ("wait", int(_os.environ.get("PACE_DEMO", "600"))), ("ctl", "ftime stop"), ("shot", "demo_end")]
+              if _os.environ.get("PACE_MODE", "demo") == "demo" else
+              [*_HUD_TO_LEVEL, ("vpad", "attach"),
+               ("ctl", "ftime start"), *_PACE_RIDE, ("ctl", "ftime stop"), ("shot", "ride")]),
+            ("ctl", "dd"),
+        ]),
+    ]),
+]
+# The bigger matrix pools on a constrained heap (review 2026-10-26, finding 1): THPS_DD_HEAP_FREE makes the planning see a free list of the
+# given blocks from the first pool request (at start-up), and both requests are taken from that view (`dd heap` view_fail counts one it
+# could not have satisfied: the real allocator hangs there). 150,000 bytes hold the game's two 32,000-byte pools but not one bigger
+# pool and a game's one: both stay the game's size and nothing fails (before the fix the first was enlarged and the second one's native
+# size no longer fitted). 300,000 + 900,000: both bigger pools fit the first block (the second, the one later requests rely on, untouched).
+SESSIONS += [
+    dict(name="dd-heap-plan", config="dd-heap-plan-config", fresh_pak=True, wav=False, env={"THPS_DD_HEAP_FREE": "150000"},
+         args=["--skip-intro", "--hidden", "--draw-distance", "full"], scenarios=[
+        ("dd_heap_plan_tight", "a free list with room for the game's pools only: both the game's size, no request that would fail", [
+            ("wait_for", "title"),
+            ("log", r"draw distance: WARNING no room for a 131072-byte matrix pool 0"),
+            ("ctl_match", "dd heap", r"mtx_pool 500 mtx_cap 500 .* failed_calls 0 .* view_fail 0"),
+        ]),
+    ]),
+    dict(name="dd-heap-plan-room", config="dd-heap-plan-config", fresh_pak=True, wav=False, env={"THPS_DD_HEAP_FREE": "300000,900000"},
+         args=["--skip-intro", "--hidden", "--draw-distance", "full"], scenarios=[
+        ("dd_heap_plan_room", "room for both bigger pools in the first block: 2048 matrices, nothing fails", [
+            ("wait_for", "title"),
+            ("ctl_match", "dd heap", r"mtx_pool 2048 mtx_cap 2048 .* failed_calls 0 .* view_fail 0"),
+        ]),
+    ]),
+]

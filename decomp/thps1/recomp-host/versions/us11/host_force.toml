@@ -26,6 +26,13 @@ splits = [0x800B3C20]   # `jr ra; li v0,1` after the endless thread loop func_80
 "0x8002B6D0" = "NameEntry_Update"   # SAVE CAREER / SAVE DATA name screen: 13 slots, D-pad only (Left/Right cursor, Up/Down letter, A accept, B back)
 "0x8002A588" = "Front_IntroUpdate"   # legal screen + logo videos (vtable 0x80019270); returns 3 = go to the title
 "0x80041AAC" = "CourseSelect_UpdateLock"   # SELECT COURSE: sets the cursor course's locked word from the tapes / medals it needs (--unlock-levels hooks it)
+"0x800382A4" = "World_DrawItems"   # (world, view, player): the course items -> sphere test, LOD, mesh queue; then the queue's draw passes
+"0x800B555C" = "Mesh_QueueEmit"   # draws the mesh queue (gMeshQueue) of one pass; called from the queue's draw-and-reset 0x800B4998, after its flush 0x800B5210
+"0x8009E6B4" = "Heap_Alloc"   # (heap, size, align): lock, first fit, unlock; the gfx set-up 0x800BDA40 asks it for both matrix pools (32000, 8)
+"0x800BD9F4" = "Gfx_AllocMtx"   # (): gMtxPools[gFrameIndex] + 64 x gMtxCount++, or gMtxScratch from 500 on (`slti 500`)
+"0x800BE5A4" = "Gfx_FrameEnd"   # end of every screen's frame: the gfx task (0x800BC654), then *gMtxResetList[i] = 0 for each entry, count = 0, gFrameIndex ^= 1
+"0x80034AA4" = "World_SetVisibilityInBox"   # (min, max, a2, a3, set mask, clear mask): the trigger scripts' zone culling (its only caller, 0x80048438, is the command at 0x80060870 of the trigger command list); sets / clears the hidden bits (1, player 2: 0x40) of every course item whose centre is in the box
+"0x80038F9C" = "World_FindItem"   # (list, name checksum) -> item: the per-item commands (hide by name 0x80035250, flag pointer by name 0x800352A4) and the gameplay code
 "0x800A93B0" = "Music_LoadSong"   # = THPS2 USA 0x800D1E34 (same code, only the string/table addresses differ)
 
 # N64Recomp config pieces (tools/gen_versions.py): PS1 GTE (COP2) leftovers. The VR4300 has no

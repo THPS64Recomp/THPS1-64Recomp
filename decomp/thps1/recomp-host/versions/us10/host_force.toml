@@ -25,6 +25,13 @@ splits = [0x800A1B20]   # `jr ra; li v0,1` after the endless thread loop func_80
 "0x8002B360" = "NameEntry_Update"   # = v1.1 0x8002B6D0 (sigmatch tier A, 1596 bytes: the whole body matches)
 "0x8002A238" = "Front_IntroUpdate"
 "0x800411C0" = "CourseSelect_UpdateLock"   # = v1.1 0x80041AAC (sigmatch tier A)
+"0x80037C84" = "World_DrawItems"   # = v1.1 0x800382A4 (same size, 0x300; the same code with only jal / address immediates different)
+"0x800A9F2C" = "Mesh_QueueEmit"   # = v1.1 0x800B555C (same size, 0x4E8; called from the queue's draw-and-reset 0x800A9368, whose four callers pass gMeshQueue)
+"0x8009F804" = "Heap_Alloc"   # = v1.1 0x8009E6B4 (the gfx set-up 0x800A3DE0 calls it for the matrix pools: same code as v1.1's 0x800BDA40)
+"0x800A3D94" = "Gfx_AllocMtx"   # = v1.1 0x800BD9F4 (same size, 0x4C; the same code with only address immediates different)
+"0x800A48E0" = "Gfx_FrameEnd"   # = v1.1 0x800BE5A4 (its first 24 instructions match with only address immediates different; 0x258 bytes against 0x22C)
+"0x80034484" = "World_SetVisibilityInBox"   # = v1.1 0x80034AA4 (same size, 0x1A0; the same code with only the gWorldItems and jump immediates different)
+"0x8003897C" = "World_FindItem"   # = v1.1 0x80038F9C (same size, 0x40; byte for byte the same)
 "0x800B32A0" = "Music_LoadSong"   # = THPS2 USA 0x800D1E34 (same code, only the string/table addresses differ)
 
 [cop2]

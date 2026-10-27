@@ -13,6 +13,13 @@ funcs = [
     "View_SetFrustum", "View_ComputeCullPlanes", "Front_NoticeUpdate", "Front_IntroUpdate", "NameEntry_Update",
     "CourseSelect_UpdateLock",
     "Music_LoadSong",         # (player, song): the music player copies the next song over the playing one (src/music.cpp)
+    "World_DrawItems",        # (world, view, player): draws the course items (draw distance: game/draw_distance.cpp)
+    "Mesh_QueueEmit",         # (queue, a1, a2): draws the renderer's mesh queue of one pass (draw distance: game/draw_distance.cpp)
+    "Heap_Alloc",             # (heap, size, align): first fit (draw distance: the matrix-pool requests at start-up)
+    "Gfx_AllocMtx",           # (): the next matrix of this frame's pool, or gMtxScratch past 500 (draw distance: bigger pools)
+    "Gfx_FrameEnd",           # (): sends the frame's gfx task, clears the reset list, swaps the buffers (draw distance: the reset list)
+    "World_SetVisibilityInBox", # (min, max, ...): the trigger scripts' zone culling (draw distance "full": which items it hid)
+    "World_FindItem",         # (list, name): one course item by name (draw distance "full": items an event names are never unhidden)
 ]
 
 # Addresses of game data (versions/<class>/data_syms.toml [addr]).
@@ -33,6 +40,17 @@ addr = [
     "gCheatSkipToRestart",    #   the pause menu's restart-point entry
     "gTimeScale",             # physics step (word, 256 = 1/30 s; set at the course start: 128 with slow motion)
     "gCourseCursor",          # SELECT COURSE: the course under the cursor (0..8, an index into gCourseTable)
+    "gFarPlane",              # draw distance: the gameplay camera's far plane (float; the fog setter writes fog end / 16)
+    "gDlBufSize",             # draw distance: bytes per top-level display list buffer (word, 0xFA00)
+    "gDlBufs",                # draw distance: the two display list buffers (pointers)
+    "gMtxPools",              # draw distance: the two matrix pools of 500 x 64 bytes (pointers)
+    "gMtxScratch",            # draw distance: the matrix the allocator returns once a pool is used up
+    "gMeshQueue",             # draw distance: the renderer's per-frame mesh queue (512 entries of 12 bytes at +0x8C, count +0x188C)
+    "gMainHeap",              # draw distance: the heap every Heap_* call is given (the matrix pools come from it)
+    "gMtxCount",              # draw distance: matrices handed out this frame (Gfx_AllocMtx; the frame start zeroes it)
+    "gFrameIndex",            # draw distance: which of the two display lists / matrix pools this frame uses (word, 0 or 1)
+    "gWorldItems",            # draw distance: the course's item list (World_DrawItems' a0): pointers at +12, count at +16
+    "gMtxResetCount",         # draw distance: entries on the frame's reset list (pointers right after it, about 2000 slots; no cap check)
     "gMusNumChannels",        # MUS library: number of channels (word)
     "gMusChannels",           # MUS library: pointer to the channel records (304 bytes each; src/music.cpp)
 ]
