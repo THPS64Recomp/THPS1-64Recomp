@@ -29,7 +29,10 @@ it on the first start.
 ## Features
 
 - **Widescreen:** 16:9, 21:9 or fit to window. The HUD moves to the screen edges.
-- **High frame rate:** the game's 30 fps interpolated to your display's refresh rate (60 Hz, 120 Hz, or higher).
+- **High frame rate:** the game's 30 fps interpolated to 60 fps.
+- **Draw distance:** see much more of each course (Original, 2x, 4x or Full).
+- **Picture Border:** Fill removes the thin black frame the N64 left around the picture.
+- **Two-player split screen** fills the picture in widescreen.
 - **Modern rendering:** RT64 on Metal (macOS) or Direct3D 12 (Windows), any resolution, MSAA.
 - **Recomp settings:** press **Esc** (or **Back** on a controller) for graphics, controls, sound and cheats. The game's
   own options are still in its menus.
@@ -42,6 +45,22 @@ it on the first start.
 ![The same moment at 16:9](docs/screenshots/warehouse-grind-16x9.jpg)
 
 ![The recomp settings menu, Graphics tab](docs/screenshots/settings-graphics.jpg)
+
+## Original or Enhanced
+
+The Preset row at the top of the Graphics tab sets six settings at once. New installs start with Enhanced. If you
+change a row yourself, the preset shows Custom.
+
+![Streets at the same moment: Original on the left, Enhanced on the right](docs/screenshots/original-vs-enhanced.jpg)
+
+| Setting | Original | Enhanced (default) |
+|---|---|---|
+| Aspect Ratio | 4:3 | 16:9 |
+| HUD Placement | 4:3 middle | Screen edges |
+| Frame Rate | 30 fps | 60 fps |
+| Draw Distance | As on the N64 | Full (the whole course) |
+| Picture Border | Thin black frame | Fill |
+| Two-Player Split Screen | 4:3 middle | Fills the picture |
 
 ## System requirements
 
@@ -88,7 +107,6 @@ All bindings and the N64 layout: [docs/MANUAL.md](docs/MANUAL.md).
 ## Known issues
 
 - A short freeze (about 0.1 s) when a level loads.
-- At 21:9, a far wall can drop out at the right edge.
 
 Full list: [docs/KNOWN-ISSUES.md](docs/KNOWN-ISSUES.md).
 

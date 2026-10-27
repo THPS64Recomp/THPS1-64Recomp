@@ -1740,7 +1740,7 @@ SESSIONS += [
 import os as _os  # noqa: E402
 # Frame pacing in a visible window (2026-10-23, the user's "stuttery" report; optin): the title left alone until the attract demo runs
 # (frame times over PACE_DEMO frames), or with PACE_MODE=ride the first course (frame times over a 12 s ride). PACE_ARGS: host args (e.g.
-# "--refresh 60" or "--refresh display"). Run it with THPS1_BINARY of the build to compare.
+# "--refresh 60"; another rate, test-only: THPS_TEST_REFRESH=display|N in the environment). Run it with THPS1_BINARY of the build to compare.
 _PACE_RIDE = [("ctl", "vpad axis lefty -32767"),
               *[x for k in range(12) for x in (("ctl", f"vpad axis leftx {(-32767, 0, 32767, 0)[k % 4]}"), ("wait", 30))],
               ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0")]
@@ -1757,6 +1757,74 @@ SESSIONS += [
         ]),
     ]),
 ]
+
+# Fog (src/fog.cpp, graphics setting `fog`; optin, evidence): one course's run start, paused (FS_PAUSE=0: not paused), captured with the
+# game's fog, Soft and Off, then the game's fog again (a second capture of the same state shows what moves on its own). FS_RIGHTS picks
+# the course, FS_ARGS adds flags (e.g. `--draw-distance full`), FS_RIDE "lefty:frames ..." (x=leftx:frames turns) rides to another spot
+# first, FS_STEPS "ctl command;shot NAME;..." adds steps (`fog soft 0.5;shot s50`: Soft starting at half the far plane). Captures:
+# <out>/fs_<name>/ (composited frames at --present-size), the `fog` counters in the notes.
+_FS_SHOT = lambda name: [("pcap", 3, f"fs_{name}")]
+_FS_STEPS = [s for c in _os.environ.get("FS_STEPS", "").split(";") if c.strip()
+             for s in (_FS_SHOT(c.strip()[5:].strip()) if c.strip().startswith("shot ") else [("ctl", c.strip()), ("wait", 20)])]
+_FS_AB = [
+    ("ctl_match", "fog", r"fog=original "), *_FS_SHOT("original"),
+    ("ctl_match", "fog soft", r"fog=soft "), ("wait", 20), *_FS_SHOT("soft"), ("ctl_match", "fog", r"fog=soft "),
+    ("ctl_match", "fog off", r"fog=off "), ("wait", 20), *_FS_SHOT("off"), ("ctl_match", "fog", r"fog=off "),
+    ("ctl_match", "fog original", r"fog=original "), ("wait", 20), *_FS_SHOT("original2"),
+    *_FS_STEPS,
+]
+_FS_ARGS = ["--skip-intro", "--hidden", "--unlock-levels", "--present-size", "960x540", "--aspect", "16:9", "--window", "1280x720",
+            "--refresh", "60"] + _os.environ.get("FS_ARGS", "").split()
+_FS_PAUSE = [
+    *([("vpad", "attach"),
+       *[s for st in _os.environ["FS_RIDE"].split() for s in (
+           ("ctl", f"vpad axis leftx {st[2:].split(':')[0]}") if st.startswith("x=") else ("ctl", f"vpad axis lefty {st.split(':')[0]}"),
+           ("wait", int(st.split(":")[1])))],
+       ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0")] if _os.environ.get("FS_RIDE") else []),
+    *([("press", "START"), ("wait", 45)] if _os.environ.get("FS_PAUSE", "1") == "1" else []),
+]
+def _fs_to_run(rights, settle=300):
+    """The level select to course RIGHTS (2: Mall, 4: Downtown, 7: Streets), SETTLE frames after its start."""
+    return [("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            *[s for _ in range(rights) for s in (("press", "RIGHT"), ("wait", 12))],
+            ("shot", "course_select"), ("press", "A"), ("wait", 600), ("press", "A"), ("wait", settle), ("shot", "in_level")]
+SESSIONS += [
+    dict(name="fog-shot", config="fog-config", fresh_pak=True, wav=False, optin=True, fresh_files=["graphics.cfg"], args=_FS_ARGS, scenarios=[
+        ("fog_shot", "fog: one course's start with the game's fog, Soft and Off (THPS1 writes its fog command only when the course has fog)", [
+            *_fs_to_run(int(_os.environ.get("FS_RIGHTS", "2")), int(_os.environ.get("FS_SETTLE", "300"))),
+            *_FS_PAUSE, *_FS_AB,
+        ]),
+    ]),
+]
+
+# fog-check: Streets, 300 frames after the start, paused, at the harness's fog = original. THPS1 writes its fog command only in a course
+# with fog (Streets has it). The `fog` counters say the command is found in each frame and rewritten with Soft, and Original after Soft
+# gives back the same picture (the edit is undone).
+SESSIONS += [
+    dict(name="fog-check", config="fog-check-config", fresh_pak=True, wav=False, present_every=10, fresh_files=["graphics.cfg"],
+         args=["--skip-intro", "--hidden", "--unlock-levels", "--aspect", "16:9", "--window", "1280x720"], scenarios=[
+        ("fog_check", "fog: Soft rewrites the game's fog command, Original puts it back (same picture)", [
+            *_fs_to_run(7),
+            ("press", "START"), ("wait", 60),
+            ("ctl_match", "fog", r"fog=original .*edits=0 "),
+            ("keep_present", "fog_original", "now"), ("wait", 30), ("keep_present", "fog_original_b", "now"),
+            ("ctl_match", "fog soft", r"fog=soft "), ("wait", 30),
+            ("keep_present", "fog_soft", "now"),
+            ("ctl_match", "fog", r"fog=soft start=\S+ tasks=[1-9]\d* found=[1-9]\d* edits=[1-9]\d* dirty=1 outstanding=[1-9]"),
+            ("ctl_match", "fog original", r"fog=original "), ("wait", 30),
+            ("keep_present", "fog_original2", "now"),
+            ("ctl_match", "fog", r"fog=original .* dirty=0 outstanding=0 "),   # every edit undone or overwritten: Original skips the walk again
+            ("present_cmp", "fog_original", "fog_original2", 0, 0.002, "mask:fog_original_b"),
+            # (no minimum for Soft here: THPS1's start views end short of the fog, so its effect is counted, not seen)
+        ]),
+    ]),
+]
+
+# The fresh-install defaults in force (review 2026-10-26, finding 2; the host's tests/menu_session.py): no graphics.cfg, not pinned to
+# the test defaults; Streets, which has fog.
+from menu_session import fresh_defaults_session  # noqa: E402
+SESSIONS.append(fresh_defaults_session(_fs_to_run(7)))
+
 # The bigger matrix pools on a constrained heap (review 2026-10-26, finding 1): THPS_DD_HEAP_FREE makes the planning see a free list of the
 # given blocks from the first pool request (at start-up), and both requests are taken from that view (`dd heap` view_fail counts one it
 # could not have satisfied: the real allocator hangs there). 150,000 bytes hold the game's two 32,000-byte pools but not one bigger
