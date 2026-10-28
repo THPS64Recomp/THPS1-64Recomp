@@ -8,7 +8,7 @@ and [RT64](https://github.com/rt64/rt64).
 
 ![A nosegrind in the Warehouse at 21:9](docs/screenshots/warehouse-grind-21x9.jpg)
 
-### [Download the latest release](https://github.com/THPS64Recomp/THPS1-64Recomp/releases/latest) (v0.1.0)
+### [Download the latest release](https://github.com/THPS64Recomp/THPS1-64Recomp/releases/latest) (v0.2.0)
 
 See also: [THPS2 64: Recompiled](https://github.com/THPS64Recomp/THPS2-64Recomp) and
 [THPS3 64: Recompiled](https://github.com/THPS64Recomp/THPS3-64Recomp), both early previews.
@@ -73,14 +73,14 @@ change a row yourself, the preset shows Custom.
 ## Install
 
 **macOS**
-1. Download `THPS1-64Recomp-v0.1.0-macOS-universal.zip` and unzip it.
+1. Download `THPS1-64Recomp-v0.2.0-macOS-universal.zip` and unzip it.
 2. Move **THPS1 64 Recompiled.app** to Applications.
 3. Open it. macOS blocks the first open because the app isn't notarized:
    - macOS 15+: System Settings > Privacy & Security > **Open Anyway**.
    - macOS 13-14: right-click the app > **Open** > **Open**.
 
 **Windows**
-1. Download `THPS1-64Recomp-v0.1.0-Windows-x64.zip` and extract it to a folder you can write to (not Program Files).
+1. Download `THPS1-64Recomp-v0.2.0-Windows-x64.zip` and extract it to a folder you can write to (not Program Files).
 2. Run `THPS1-64Recomp`. If SmartScreen appears: **More info** > **Run anyway**.
 
 **First start:** choose your ROM dump (or drop it on the window). The app checks it and builds the game, which takes about

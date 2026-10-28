@@ -1,6 +1,6 @@
 # Testing THPS1 64: Recompiled
 
-THPS1 64: Recompiled v0.1.0 is the first public release. It passes an automated test suite on macOS and Windows, but
+THPS1 64: Recompiled v0.2.0 is the second public release. It passes an automated test suite on macOS and Windows, but
 only a few people have played it, on a few machines. If you play it, your reports are the most useful thing you can send us.
 
 Please read [KNOWN-ISSUES](KNOWN-ISSUES.md) first, so you can skip what we already know about.
@@ -62,7 +62,7 @@ Use the [bug report form](https://github.com/THPS64Recomp/THPS1-64Recomp/issues/
 play-testing notes go to [Discussions](https://github.com/THPS64Recomp/THPS1-64Recomp/discussions). Please include:
 
 1. **The game and release**: for example "Tony Hawk's Pro Skater, USA v1.1". Run the app with `--check-rom FILE` if you are not sure which dump you have.
-2. **The app version**: this one is v0.1.0; say which zip you downloaded (macOS or Windows).
+2. **The app version**: this one is v0.2.0; say which zip you downloaded (macOS or Windows).
 3. **Your system**: macOS version and Mac model, or Windows version, CPU and GPU. The display's refresh rate (60 Hz, 120 Hz...).
 4. **Your settings**: attach `general.cfg`, `graphics.cfg` and `controls.cfg` from the config folder (plain text, no game data),
    or name the settings you changed. Controller or keyboard, and which controller.
