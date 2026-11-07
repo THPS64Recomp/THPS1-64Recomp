@@ -27,7 +27,35 @@ reports jump-table, virtual-table and code-pointer coverage.
 ## 3. The regression suite plays the real game [machine]
 
 `decomp/thps1/recomp-host/tools/test.sh` starts the host once per session and drives the game by pad input, waiting for
-checkpoints (recognised screens) instead of sleeping. Result on the developer (static) build, macOS, 2026-10-15 (the release
+checkpoints (recognised screens) instead of sleeping.
+
+**v0.3.0** (the release code; macOS on an Apple M2 Pro and Windows on the PC below, 2026-11-05 and 06; pass / fail / skipped):
+
+| Release | macOS | Windows |
+|---|---|---|
+| USA v1.1 | 121 / 0 / 4 | 119 / 1 / 5 (a grind check timed out; it passed both reruns) |
+| USA v1.0 | not run | front end and course cycle: 13 / 13 |
+| Europe | not run | front end and course cycle: 13 / 13 |
+
+Both platforms also pass the first-run tests, and macOS passes the draw distance sessions at Full. The Windows zip passes the
+bundle check, the full ROM scan against every dump and an install test. Hand play on both platforms found nothing beyond the
+known issues. v0.3 adds a recorded-ride session, a recorded Mall route through the sign event, and a check that reads
+each course's zone table.
+
+**v0.2.0** (the release code; macOS on an Apple M2 Pro and Windows on the PC below, 2026-10-27; pass / fail / skipped):
+
+| Release | macOS | Windows |
+|---|---|---|
+| USA v1.1 | 121 / 0 / 4 | 121 / 0 / 4 |
+| USA v1.0 | 120 / 0 / 4 (2026-10-26, before the last playtest fixes) | not run |
+| Europe | 120 / 0 / 4 (2026-10-26, before the last playtest fixes) | not run |
+
+Both platforms also pass the first-run tests, the settings and controls config tests, the menu sessions and the draw distance
+sessions at Full (23 / 23 on both). The release zips pass the bundle check, the full ROM scan against every dump and an
+install test. v0.2 adds scenarios for draw distance, Picture Border, the wide split screen, the presets and fog, and the
+menu's row navigation.
+
+**v0.1.0:** result on the developer (static) build, macOS, 2026-10-15 (the release
 candidate's full gate), for each of the three releases: **73 passed, 0 failed, 4 skipped**. The 4 skipped checks need the optional
 launcher build, which is not part of this repository. On USA v1.0 the first run of the gate failed one check, the cheats'
 save-identity test: it compared the saves of two runs that played differently (one in slow motion). It now compares a pair of runs
@@ -70,6 +98,9 @@ tests pass (16 checks plus one macOS-only skip); and an install test of the Wind
 **75 passed, 0 failed, 4 skipped** for each of the three releases (with `course-cycle`); the first-run tests pass; the zip passes
 the bundle check and the full ROM scan against every dump; the install test passes; a 30-minute soak of USA v1.1 had no crash or
 hang.
+**Windows, v0.2.0** (2026-10-27, the same PC, the release code): USA v1.1 **121 passed, 0 failed, 4 skipped**; first-run,
+config and menu tests pass; at Full 23 / 23; the zip passes the bundle check, the full ROM scan against every dump and the
+install test. A hand playtest from a fresh config found no problems.
 
 ## 4. Small checks that need no ROM [machine]
 

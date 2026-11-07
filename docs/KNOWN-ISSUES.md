@@ -1,6 +1,6 @@
 # Known issues
 
-What isn't finished or hasn't been checked in v0.2.0. "Untested" means the code exists but hasn't been run in that
+What isn't finished or hasn't been checked in v0.3.0. "Untested" means the code exists but hasn't been run in that
 setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.md). Found something that isn't here?
 [TESTING](TESTING.md) says how to report it.
 
@@ -36,9 +36,11 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
   it in the centred 4:3 area). The HUD keeps its 4:3 size, and a few elements (the timer, trick lines, the pause menu,
   result pages) stay centred on purpose. Menus, loading screens and other 2D screens are pillarboxed 4:3. In **two-player**
   split screen each player's view fills its half of the wide picture, and each player's HUD sits at its own view's edge.
-- **Frame interpolation** at 60 Hz and up pairs 97 to 99 % of the moving parts between game frames in the Warehouse and
+- **Frame interpolation** at 60 Hz pairs 97 to 99 % of the moving parts between game frames in the Warehouse and
   the menus. Other levels have cars and other moving objects whose pairing hasn't been checked. Replays and the
   competition intro are untested.
+- **Sliding text moves in steps at 60 fps**: text that slides across the screen, such as a course title or a menu sliding
+  in, moves only on the game's own frames (30 per second), so it looks less smooth than the 3D picture.
 - **Each level start freezes the picture for about 0.13 s** while the game loads the level (0.2 s in v0.1; unpacking
   and clearing memory now run natively). What remains is the game's own load, which runs in one go as on the console,
   and RT64 showing nothing new for about two more frames after it. The **attract demo** pauses for 60 to 85 ms when it
@@ -53,8 +55,8 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
 
 ## Stability
 
-- **A crash in the graphics layer** (inside RT64, seen about once in 40 test sessions under load and once in hand play) is
-  fixed in this release. With the fix, a stress test that crashed 2 runs in 14 crashed none in 34. If you see a crash,
+- **A crash in the graphics layer** (inside RT64, seen about once in 40 test sessions under load and once in hand play) was
+  fixed in v0.2. With the fix, a stress test that crashed 2 runs in 14 crashed none in 34. If you see a crash,
   please send `crash.log`.
   Long unattended runs (soak tests) found no crash or hang: 2 h 40 min on macOS, and 1 h plus two 30-minute runs on Windows.
 
@@ -69,6 +71,8 @@ setting. Problems fixed before this release are in the [CHANGELOG](../CHANGELOG.
 
 ## Audio
 
+- **Pause pop:** a short pop can play when you pause while music is playing. The original game does the same in a
+  reference emulator.
 - Audio comes from the translated audio microcode. The test suite checks its level and spectrum; it isn't claimed to be
   bit-exact with the console.
 

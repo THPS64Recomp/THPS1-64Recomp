@@ -7,10 +7,16 @@ All notable changes to THPS1 64: Recompiled are listed here. The format is based
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-07
+
+Built on THPS64Host v0.3.0, with Full draw distance that reads each course's own zone data. It runs the USA v1.1, USA v1.0
+and Europe releases of the N64 game, on macOS (universal) and Windows x64.
+
 ### Changed
 - Built on THPS64Host v0.3.0.
 - Full draw distance tells scenery the game hides for distance apart from geometry hidden by course events, which stays as
   the game sets it.
+- Known issues now describe the short pop that can occur when music is paused. The original game does the same.
 - Tests: the course-cycle test recognizes the PAUSED logo over any course background; test rides claim a controller before
   steering; an opt-in session records and replays a complete ride; the Mall sign-event test brakes into the signs and checks
   the event before and after.
@@ -112,6 +118,7 @@ the N64 game, on macOS (universal) and Windows x64.
 - A controller connected at start was opened twice.
 - Windows: the settings migration was never saved, and the frame-interpolation time budget never applied.
 
-[Unreleased]: https://github.com/THPS64Recomp/THPS1-64Recomp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/THPS64Recomp/THPS1-64Recomp/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/THPS64Recomp/THPS1-64Recomp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/THPS64Recomp/THPS1-64Recomp/releases/tag/v0.2.0
 [0.1.0]: https://github.com/THPS64Recomp/THPS1-64Recomp/releases/tag/v0.1.0
