@@ -67,7 +67,8 @@ CHECKPOINTS = {
     # must not move: widening the frustum once moved it, Q17). Tolerance 0.06: runs pause at the same game poll (press_after) and land 0.00-0.02 apart; a pause one frame later is 0.12 away, and the old frustum-widening camera 0.52.
     "paused_w90":     dict(size="320x237", regions=[((0.0, 0.25, 1.0, 1.0), 32, 18, 0.06)], record=("settle", 30),
                            what="Warehouse paused 90 frames after the start (camera reference, 4:3)"),
-    "pause":          dict(size="320x237", regions=[((0.25, 0.08, 0.75, 0.24), 16, 5, 0.40)], record=("settle", 30),
+    # Reuse the soak's PAUSED-logo template so other courses' scenery cannot reject the menu.
+    "pause":          dict(size="320x237", regions=[((0.25, 0.08, 0.75, 0.24), "mask", 150, 0.6)], record=("settle", 30),
                            what="PAUSED menu"),
     # In-level menus are drawn over the live 3D scene, whose view depends on how long the run
     # lasted: match their text as templates ("mask"), not the whole picture (Q18: the 16:9 /
@@ -920,7 +921,7 @@ SESSIONS += [
          args=["--aspect", "16:9", "--window", "1280x720", "--res-scale", "1", "--msaa", "0", "--hidden", "--hud", "expand", "--hud-debug", "1000000"], scenarios=[
         ("hud_skate", "skate around (host.log: groups by anchor)", [
             *_HUD_TO_LEVEL,
-            ("vpad", "attach"),
+            ("vpad", "attach"), ("vpress", "a"),
             ("ctl", "vpad axis lefty -32000"),
             *[st for i in range(10) for st in (("vpress", "a"), ("wait", 25), ("vpress", "x"), ("wait", 15), ("vpress", "b"), ("wait", 40), ("vpress", "y"), ("wait", 30),
                                               ("ctl", f"vpad axis leftx {-32000 if i % 2 else 32000}"))],
@@ -1007,7 +1008,7 @@ SESSIONS += [
     dict(name="cheats-explore", config="cheats-explore-config", fresh_files=["cheats.cfg"], fresh_pak=True, wav=False, optin=True, args=["--skip-intro"] + _os.environ.get("CS_ARGS", "").split(), scenarios=[
         ("cheats_explore", "exploration: Warehouse, forward + ollie + grind presses; skater state / rail balance samples; pause menu", [
             *_CS_FREE_LEVEL,
-            ("vpad", "attach"),
+            ("vpad", "attach"), ("vpress", "a"),
             ("ctl", "peek 0x800DE99C 1"),
             ("skater_watch", 80, _CS_GRIND_TRY, [0x82C, 0x9DC, 0x328]),
             ("ctl", "vpad axis lefty 0"),
@@ -1052,6 +1053,7 @@ SESSIONS += [
             ("peek_is", "@gCheatPerfectBalance", 0, "perfect balance flag"),
             ("peek_is", "@gCheatSlowMotion", 0, "slow motion flag"),
             ("peek_is", "@gCheatSkipToRestart", 0, "skip to restart flag"),
+            ("vpress", "a"),   # claim the pad before the leading axis in the grind route
             ("skater_watch", 60, _CS_GRIND_TRY, ["Skater_PhysState", "Skater_RailBalance"]),
         ]),
     ]),
@@ -1074,6 +1076,7 @@ SESSIONS += [
             ("peek_is", "@gCheatPerfectBalance", 1, "perfect balance flag"),
             ("peek_is", "@gCheatSlowMotion", 1, "slow motion flag"),
             ("peek_is", "@gCheatSkipToRestart", 1, "skip to restart flag"),
+            ("vpress", "a"),   # claim the pad before the leading axis in the grind route
             ("skater_watch", 60, _CS_GRIND_TRY, ["Skater_PhysState", "Skater_RailBalance"], ("Skater_RailBalance", "Skater_PhysState", 4, 0, 2)),
         ]),
         ("flags_live_off", "turned off live: the host clears the game's flags", [
@@ -1137,7 +1140,7 @@ def _rp_cam_session(name, rights, what):
         (name.replace("-", "_"), what, [
             *_RP_FREE(rights),
             ("shot", "start"),
-            ("vpad", "attach"),
+            ("vpad", "attach"), ("vpress", "a"),
             # holding back from standing (the camera swings round with the skater), then riding and quick left/right turns; IDs on, then off
             *_rp_clip("back_stand_on", _rp_stick(0, 32767, 120)),
             *_rp_stick(0, 0, 30),
@@ -1213,7 +1216,7 @@ SESSIONS += [
             ("press", "A"), ("wait", 600),                   # Downtown's tips screen is not the tips_ready reference (Warehouse)
             ("press", "A"), ("wait", 300),
             ("shot", "downtown_in_level"),
-            ("vpad", "attach"),
+            ("vpad", "attach"), ("vpress", "a"),
             ("ctl", "vpad axis lefty -32000"), ("wait", 40),
             ("ctl", f"pcap 1 {_TEAR_DIR}"),
             *_TEAR_TURNS,
@@ -1250,7 +1253,7 @@ _DD_FLIP = lambda pre: [("ctl", "dd showall 0"), ("wait", 4), ("ctl", f"pcap 1 {
 _DD_CLEAN = lambda pre: _DD_FLIP(pre) if _os.environ.get("DD_FLIP") else [s for t in (_os.environ.get("DD_AB", "1 2 4 8").split() if _os.environ.get("DD_CLEAN") else []) for k, sa in [(t.split(":") + [""])[:2]] for s in (
     *([("ctl", f"dd showall {sa}")] if sa else []), ("ctl", f"dd factor {k}"), ("wait", 20), *_DD_SHOT(f"{pre}_clean_x{t.replace(':', '_s')}"))]
 _DD_VANTAGES = [s for n, ride in enumerate([v for v in _os.environ.get("DD_VANTAGES", "").split(";") if v.strip()], 1) for s in (
-    ("press", "START"), ("wait", 45), ("vpad", "attach"), *_DD_RIDE_STEPS(ride),
+    ("press", "START"), ("wait", 45), ("vpad", "attach"), ("vpress", "a"), ("wait", 20), *_DD_RIDE_STEPS(ride),
     ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0"), ("wait", 30), *_DD_CLEAN(f"v{n}"), ("press", "START"), ("wait", 45), *_DD_ABP(f"v{n}"))]
 SESSIONS += [
     dict(name="dd-probe", config="dd-config", fresh_pak=True, wav=False, optin=True,
@@ -1270,11 +1273,11 @@ SESSIONS += [
             ("ctl", "dd"),
             *([("ctl", f"ramsave {_DD_DIR}/ram_start.bin")] if _os.environ.get("DD_RAMSAVE") else []),
             # DD_PRE "KEY:frames ...": presses before the ride, with a shot after each (with --skip-to-restart in DD_ARGS: START, then the pause
-            # menu's SKIP TO RESTART, the 4th row, to one of the course's restart points: repeatable spots all over the course)
+            # menu's SKIP TO RESTART, the 3rd row, to one of the course's restart points: repeatable spots all over the course)
             *[s for st in _os.environ.get("DD_PRE", "").split() for s in (("press", st.split(":")[0]), ("wait", int(st.split(":")[1])), ("shot", "pre"))],
             # DD_RIDE "lefty:frames lefty:frames ..." (stick y, negative = forward; leftx with x=) before the comparison: to a spot with a long view
             # (DD_RIDECAP=N: every Nth composited frame of it, in ridecap/)
-            ("vpad", "attach"),
+            ("vpad", "attach"), ("vpress", "a"), ("wait", 20),  # claim port 1 before any stick input
             *([("ctl", f"pcap {_os.environ['DD_RIDECAP']} {_DD_DIR}/ridecap")] if _os.environ.get("DD_RIDECAP") else []),
             *[s for st in _os.environ.get("DD_RIDE", "").split() for s in (
                 (("ctl", f"vpad axis leftx {st.split(':')[0][2:]}"),) if st.startswith("x=") else (("ctl", f"vpad axis lefty {st.split(':')[0]}"),)) +
@@ -1292,7 +1295,7 @@ SESSIONS += [
             *([("ctl", "dd testcap " + _os.environ["DD_TESTCAP"])] if _os.environ.get("DD_TESTCAP") else []),   # exercise the governor
             ("ctl", "dd reset"),
             *([("press", "START"), ("wait", 45)] if _os.environ.get("DD_PAUSE", "1") == "1" else []),
-            ("vpad", "attach"),
+            ("vpad", "attach"), ("vpress", "a"),
             ("ctl", "vpad axis lefty 32767"), ("wait", 120), ("ctl", "vpad axis lefty 0"), ("wait", 40),
             *_DD_SHOT("back"),
             ("dl", 30, 0),
@@ -1314,12 +1317,25 @@ SESSIONS += [
         ]),
     ]),
 ]
+
+# Trigger-zone classifier evidence, selected course by RIGHT presses from Warehouse (opt-in).
+SESSIONS += [
+    dict(name="dd-zones", config="dd-zones-config", fresh_pak=True, wav=False, optin=True,
+         args=["--skip-intro", "--hidden", "--unlock-levels", "--present-size", "960x540", "--aspect", "16:9", "--window", "1280x720", "--draw-distance", "full"] + _os.environ.get("DZ_ARGS", "").split(),
+         scenarios=[("dd_zones", "trigger table classification evidence", [
+            ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
+            *[s for _ in range(int(_os.environ.get("DZ_RIGHTS", "0"))) for s in (("press", "RIGHT"), ("wait", 12))],
+            ("shot", "course_select"),
+            ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300), ("log", r"draw distance: zones: trigger file of [1-9]")
+         ])]),
+]
 # Heap headroom with the always-allocated 2048-matrix pools (2026-10-22, the private development notes; optin, measurement): FREE SKATE,
 # DH_COURSES courses back to back in one process (from the course select's DH_FIRST-th course, Warehouse = 0),
 # each loaded, skated ~12 s and ended (END RUN -> LEVEL SELECT). `dd heap` before each course (its reply has the previous course's
 # low-water marks, then resets them), after the load, after the ride and after the exit. DD_ARGS: extra host args
 # (e.g. "--draw-distance full", "--dd-buffers original").
-_DH_PLAY = [("ctl", "vpad axis lefty -32767"),
+_DH_PLAY = [("vpress", "a"),   # claim port 1 before the stick-only route
+             ("ctl", "vpad axis lefty -32767"),
             *[x for k in range(12) for x in (("ctl", f"vpad axis leftx {(-32767, 0, 32767, 0)[k % 4]}"),
                                              ("ctl", "vpad button a 1"), ("wait", 8), ("ctl", "vpad button a 0"), ("wait", 22))],
             ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0")]
@@ -1351,28 +1367,31 @@ SESSIONS += [
 # the post-run menu -> LEVEL SELECT. The course select keeps its cursor on the last course (RIGHT moves it).
 from course_cycle import course_cycle_session, LOAD_LINE  # noqa: E402
 # Draw distance Full and the game's events (2026-10-22): Full unhides the course items the trigger scripts hide by area, never the ones an
-# event hides. Mall, free skate, no input: the skater rolls down the start corridors and through the CLOSED / CERRADO signs at the end of
-# the CITY MALL tunnel; breaking them hides course items 356 and 359 by name (flags 0x1061: the trigger command's hide by name 0x80035250,
-# so World_FindItem marks them as event-owned). Before: drawn; after: hidden for good, also with Full.
+# event hides. Mall, free skate: a checked-in controller ride drives the skater through the CLOSED / CERRADO signs at the end of the CITY
+# MALL tunnel; breaking them hides course items 356 and 359 by name (flags 0x1061: the trigger command's hide by name 0x80035250, so
+# World_FindItem marks them as event-owned). Before: drawn; after: hidden for good, also with Full. The ride is armed before leaving
+# Scoring Tips and starts at the course-generation boundary, so the route is independent of wall-clock input timing.
+_DD_EVENT_RIDE = _os.path.join(_os.path.dirname(__file__), "fixtures", "mall-course.ride")
 SESSIONS += [dict(name="dd-event", config="dd-event-config", fresh_pak=True, wav=False,
     args=["--skip-intro", "--hidden", "--unlock-levels", "--draw-distance", "full", "--window", "960x540"], scenarios=[
     ("dd_event_item", "draw distance full: the Mall signs the skater breaks stay hidden afterwards (event-owned), before that they are drawn", [
         ("wait_for", "title"), ("go", "START", "title", "main_menu"), ("menu", "main", 3), *TO_LEVEL_SELECT,
         ("press", "RIGHT"), ("wait", 12), ("press", "RIGHT"), ("wait", 12),
-        # The A that starts the run is pressed until the course is on screen (the HUD checkpoint): with a fixed wait a slow load once
-        # swallowed it, the run started late and the no-input roll had not reached the signs when they were checked. Mall's tips screen
-        # does not match the shared `tips_ready` reference, so the in-level checkpoint is the anchor.
-        ("press", "A"), ("wait", 600), ("go", "A", None, "in_level"), ("wait", 30),
+        ("vpad", "attach"), ("ctl", "ride hold 1"), ("ride_arm", _DD_EVENT_RIDE),
+        ("vpress", "a"), ("wait", 600), ("shot", "scoring_tips"),
+        ("ctl_match", "ride", r"mode=play-armed .* next=0 "),
+        # This A leaves Scoring Tips. The armed ride supplies the first course-boundary input.
+        ("go", "A", None, "in_level"),
         ("ctl_match", "dd item 356", r"event 0 drawn 1"),
         ("ctl_match", "dd item 359", r"event 0 drawn 1"),
         ("ctl_same", "dd item 356", r" named (\d+) ", "named"),   # what the course's set-up scripts named
         ("shot", "before_signs"),
-        ("wait", 900),
-        ("shot", "after_signs"),
+        ("ride_end", "after_signs", 300, None, "present"),
         ("ctl_match", "dd item 356", r"flags 0x1061 zone 0x00 event 1 drawn 0"),
         ("ctl_match", "dd item 359", r"flags 0x1061 zone 0x00 event 1 drawn 0"),
-        ("go", "START", "in_level", "pause"),   # a pause is not a new course: the record and its event ownership stay
-        ("wait", 60), ("go", "START", "pause", "in_level"), ("wait", 10),
+        ("shot", "after_signs"),
+        ("log", r"Virtual Controller takes port 1"),
+        ("go", "START", "pause", "in_level"), ("wait", 10),  # the fixture's START pauses; resume without changing course ownership
         ("ctl_match", "dd item 356", r"flags 0x1061 zone 0x00 event 1 drawn 0"),
     ]),
     # RETRY rebuilds the course, with the item list at the same address and count (review 2026-10-26, finding 7): the zone record starts
@@ -1725,7 +1744,7 @@ SESSIONS += [
             ("ctl_match", "dd", r"mode=original .* mtx_cap=500 "),
             ("ui", "esc"), ("ui_state", "open=1"), ("ui", "tab 2"), ("ui", "click #lbl_dd_full"), ("log", r"draw distance: full"), ("ui", "esc"),
             ("ctl", "dd reset"),
-            ("vpad", "attach"),
+            ("vpad", "attach"), ("vpress", "a"),
             ("ctl", "vpad axis lefty -32767"), ("wait", 150), ("ctl", "vpad axis lefty 0"), ("wait", 30),
             # pause -> END RUN -> RETRY: the course starts again (the game is not restarted); Downtown's start overview takes ~560 pool matrices at Full
             ("press", "START"), ("wait", 45), ("menu", "pause", 3), ("press", "A"), ("wait", 90), ("press", "A"), ("wait", 600), ("press", "A"), ("wait", 300),
@@ -1741,7 +1760,8 @@ import os as _os  # noqa: E402
 # Frame pacing in a visible window (2026-10-23, the user's "stuttery" report; optin): the title left alone until the attract demo runs
 # (frame times over PACE_DEMO frames), or with PACE_MODE=ride the first course (frame times over a 12 s ride). PACE_ARGS: host args (e.g.
 # "--refresh 60"; another rate, test-only: THPS_TEST_REFRESH=display|N in the environment). Run it with THPS1_BINARY of the build to compare.
-_PACE_RIDE = [("ctl", "vpad axis lefty -32767"),
+_PACE_RIDE = [("vpress", "a"),   # claim port 1 before the stick-only route
+             ("ctl", "vpad axis lefty -32767"),
               *[x for k in range(12) for x in (("ctl", f"vpad axis leftx {(-32767, 0, 32767, 0)[k % 4]}"), ("wait", 30))],
               ("ctl", "vpad axis lefty 0"), ("ctl", "vpad axis leftx 0")]
 SESSIONS += [
@@ -1760,7 +1780,7 @@ SESSIONS += [
 
 # Fog (src/fog.cpp, graphics setting `fog`; optin, evidence): one course's run start, paused (FS_PAUSE=0: not paused), captured with the
 # game's fog, Soft and Off, then the game's fog again (a second capture of the same state shows what moves on its own). FS_RIGHTS picks
-# the course, FS_ARGS adds flags (e.g. `--draw-distance full`), FS_RIDE "lefty:frames ..." (x=leftx:frames turns) rides to another spot
+# the course, FS_ARGS adds flags (e.g. `--draw-distance full`), FS_RIDE "lefty:frames ..." (raw SDL axes, -32768..32767) (x=leftx:frames turns) rides to another spot
 # first, FS_STEPS "ctl command;shot NAME;..." adds steps (`fog soft 0.5;shot s50`: Soft starting at half the far plane). Captures:
 # <out>/fs_<name>/ (composited frames at --present-size), the `fog` counters in the notes.
 _FS_SHOT = lambda name: [("pcap", 3, f"fs_{name}")]
@@ -1776,7 +1796,7 @@ _FS_AB = [
 _FS_ARGS = ["--skip-intro", "--hidden", "--unlock-levels", "--present-size", "960x540", "--aspect", "16:9", "--window", "1280x720",
             "--refresh", "60"] + _os.environ.get("FS_ARGS", "").split()
 _FS_PAUSE = [
-    *([("vpad", "attach"),
+    *([("vpad", "attach"), ("vpress", "a"), ("wait", 20),   # a controller takes port 1 only once a button is pressed (an ollie here)
        *[s for st in _os.environ["FS_RIDE"].split() for s in (
            ("ctl", f"vpad axis leftx {st[2:].split(':')[0]}") if st.startswith("x=") else ("ctl", f"vpad axis lefty {st.split(':')[0]}"),
            ("wait", int(st.split(":")[1])))],
@@ -1847,3 +1867,7 @@ SESSIONS += [
         ]),
     ]),
 ]
+
+# Input-only canonical rides (local recordings; shared harness steps consume playback through EOF).
+from ride_sessions import ride_sessions  # noqa: E402
+SESSIONS += ride_sessions(_fs_to_run(0, 2), _CS_GRIND_TRY, start_after="course_select", required_states={1: 10, 4: 2})

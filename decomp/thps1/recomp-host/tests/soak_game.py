@@ -45,8 +45,7 @@ _pause_ref = None
 
 
 def pause_visible(sk) -> bool:
-    """The PAUSED logo on screen, over any level's picture: a template match of the logo's bright pixels (the suite's `pause` checkpoint compares luma grids, which
-    the background of other levels breaks)."""
+    """The PAUSED logo over any level, using the regression suite's bright-pixel template."""
     import run as R
     global _pause_ref
     if _pause_ref is None:

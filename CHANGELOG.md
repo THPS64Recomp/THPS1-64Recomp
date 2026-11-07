@@ -11,6 +11,9 @@ All notable changes to THPS1 64: Recompiled are listed here. The format is based
 - Built on THPS64Host v0.3.0.
 - Full draw distance tells scenery the game hides for distance apart from geometry hidden by course events, which stays as
   the game sets it.
+- Tests: the course-cycle test recognizes the PAUSED logo over any course background; test rides claim a controller before
+  steering; an opt-in session records and replays a complete ride; the Mall sign-event test brakes into the signs and checks
+  the event before and after.
 
 ### Fixed
 - Full draw distance leaves rooms to the game: a zone the course hides from its own doors, such as School's gym, is drawn as in
