@@ -1131,7 +1131,7 @@ functions = [
     { name = "SendVisibleFromNode_maybe", vram = 0x8005F798, size = 0x1DC },
     { name = "SendKillFromNode", vram = 0x8005F974, size = 0x3D0 },
     { name = "SendSuspendOrActivate_maybe", vram = 0x8005FD44, size = 0x154 },
-    { name = "SkipCommand_maybe", vram = 0x8005FE98, size = 0x308 },
+    { name = "Trig_SkipCommand", vram = 0x8005FE98, size = 0x308 },
     { name = "ExecuteCommandList", vram = 0x800601A0, size = 0x126C },
     { name = "Trig_ParseTRGFile", vram = 0x8006140C, size = 0x3AC },
     { name = "Trig_GetPosition", vram = 0x800617B8, size = 0x14C },

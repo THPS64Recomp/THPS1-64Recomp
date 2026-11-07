@@ -39,10 +39,13 @@
 //
 // Zone visibility ("full" only). The trigger scripts hide most course items by box as the skater moves (draw-cost culling, as in THPS2/3);
 // with "full" the items the box command hid are unhidden for the draw call and drawn in the runs before band 0, whatever their distance,
-// and every flag is put back after the call. Items hidden by name (events: secrets, goals) stay hidden. See ZoneRecord below.
+// and every flag is put back after the call. Items hidden by name (events: secrets, goals) stay hidden. See zone_ownership.h.
 #include <algorithm>
+#include "guest_mem.h"
+#include "zone_ownership.h"
 #include <atomic>
 #include <cmath>
+#include <cstdlib>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -57,13 +60,15 @@
 
 namespace {
 
-uint32_t word(const uint8_t* rdram, uint32_t vaddr) { return *reinterpret_cast<const uint32_t*>(rdram + (vaddr & 0x3FFFFFC)); }
-float f32(const uint8_t* rdram, uint32_t vaddr) {
-    uint32_t w = word(rdram, vaddr);
-    float f;
-    std::memcpy(&f, &w, 4);
-    return f;
-}
+using thps::mem::in_ram;
+using thps::mem::word;
+using thps::mem::put_word;
+using thps::mem::f32;
+using thps::mem::hword_ptr;
+using thps::mem::HeapStats;
+using thps::mem::heap_stats;
+using thps::mem::hword;
+using thps::zones::flag_ptr;
 constexpr uint32_t kMtxPoolSize = 500;   // Gfx_AllocMtx: `slti 500`
 constexpr uint32_t kBigMtxCap = 2048;    // with the setting on at start-up (as THPS2/3): 2 x 131072 bytes instead of 2 x 32000
 std::atomic<uint32_t> g_mtx_cap{0};      // the pools' size in matrices when thps_mem_alloc enlarged them (0: the game's own 500)
@@ -125,110 +130,20 @@ ModelCost model_cost(const uint8_t* rdram, uint32_t model) {
 // is per course instance: a new item list (pointer or count) or a course start (thps::dd::course_generation; THPS1's is the course items
 // drawn again after a pause in drawing them, see thps_world_draw_items: a restart can rebuild the list at the same address; review
 // 2026-10-26, finding 7) starts it again: empty, except for what the zone culling did and the items an event named since the course items were last drawn (the new
-// course's set-up scripts, which run while it loads, before that first draw). Game thread only. (As THPS2/3's game/draw_distance.cpp.)
+// course's set-up scripts, which run while it loads, before that first draw). Game thread only. (Now src/zone_ownership.h, shared with THPS2/3.)
 std::atomic<uint32_t> g_frames{0};   // Gfx_FrameEnd calls (game frames)
 constexpr uint32_t kCourseGap = 8;     // frames without drawing the course items that make the next draw a new course (load screens take seconds)
-struct ZoneRecord {
-    uint32_t arr = 0, n = 0;
-    uint64_t gen = 0;             // the course start it belongs to
-    std::vector<uint8_t> bits;    // per item: hidden bits (of 0x41) the zone culling set and nothing has cleared since
-    std::vector<uint8_t> after;   // per item: the item's hidden bits right after the zone culling last changed them
-    std::vector<uint8_t> event;   // per item: named by World_FindItem in this course: never unhidden
-    std::vector<uint8_t> keep;    // per item: left to the game (School's gym, below): the zone culling is not recorded for it
-} g_zone;
-std::vector<uint16_t> g_before;
-std::vector<uint32_t> g_named_since_draw;   // items World_FindItem named since the last World_DrawItems of the course items
-std::vector<uint32_t> g_zoned_since_draw;   // and the indices of the items whose hidden bits the zone culling changed since then
-uint16_t* flag_ptr(uint8_t* rdram, uint32_t arr, uint32_t i) {
-    return reinterpret_cast<uint16_t*>(rdram + ((word(rdram, word(rdram, arr + 4 * i) + 4) & 0x3FFFFFE) ^ 2));
-}
-// School's gym (playtest 2026-10-27). From outside, the game draws the gym as a stand-in seen through its door and keeps the real
-// interior zone-hidden until the skater goes in; unhidden at Full, the interior was drawn into the stand-in (bright gym, jagged black
-// edges at the doorway). Every on/off difference at the doorway came from items in the gym's block (x -19500..-10900, z 7400..16600;
-// 263 items, 226 zone-hidden from outside). Those are left to the game, so the interior appears as the skater enters, as in the original.
-// Only in School: the course is recognised by the gym's shell, at least four items centred on (-15170, -6435, 12002) within 2 units
-// (School has exactly four, 662, 719, 980 and 981); in any other course nothing matches and nothing changes. v0.3 replaces this with
-// telling culling boxes from state boxes (docs: v03-zone-classification).
-void school_gym(uint8_t* rdram, uint32_t arr, uint32_t n, std::vector<uint8_t>& keep) {
-    auto close_to = [](float a, float b) { return std::fabs(a - b) <= 2.0f; };
-    uint32_t shell = 0;
-    for (uint32_t i = 0; i < n; i++) {
-        const uint32_t it = word(rdram, arr + 4 * i);
-        shell += close_to(f32(rdram, it + 36), -15170.0f) && close_to(f32(rdram, it + 40), -6435.0f) && close_to(f32(rdram, it + 44), 12002.0f);
-    }
-    if (shell < 4) return;
-    uint32_t kept = 0;
-    for (uint32_t i = 0; i < n; i++) {
-        const uint32_t it = word(rdram, arr + 4 * i);
-        const float x = f32(rdram, it + 36), z = f32(rdram, it + 44);
-        keep[i] = x >= -19500.0f && x <= -10900.0f && z >= 7400.0f && z <= 16600.0f;
-        kept += keep[i];
-    }
-    std::printf("[thps] draw distance: School's gym (%u of %u items) is left to the game's zones\n", kept, n);
-    std::fflush(stdout);
-}
-void zone_sync(uint8_t* rdram, uint32_t list) {
-    const uint32_t n = word(rdram, list + 16), arr = word(rdram, list + 12);
-    const uint64_t gen = thps::dd::course_generation();
-    if (n != g_zone.n || arr != g_zone.arr || gen != g_zone.gen) {
-        const size_t m = n <= 8192 ? n : 0;
-        ZoneRecord old = std::move(g_zone);
-        g_zone = ZoneRecord{arr, n, gen, std::vector<uint8_t>(m, 0), std::vector<uint8_t>(m, 0), std::vector<uint8_t>(m, 0), std::vector<uint8_t>(m, 0)};
-        school_gym(rdram, arr, uint32_t(m), g_zone.keep);
-        // The same list, a new course instance: the zone culling done since the last draw (the new run's, while it loaded) is kept. Event
-        // ownership comes only from the names below, never from the old record.
-        if (arr == old.arr && n == old.n)
-            for (uint32_t i : g_zoned_since_draw)
-                if (i < m && i < old.bits.size() && !g_zone.keep[i]) g_zone.bits[i] = old.bits[i], g_zone.after[i] = old.after[i];
-        for (uint32_t i = 0; i < m && !g_named_since_draw.empty(); i++)
-            if (std::find(g_named_since_draw.begin(), g_named_since_draw.end(), word(rdram, arr + 4 * i)) != g_named_since_draw.end()) g_zone.event[i] = 1;
-    }
-}
 
 }  // namespace
 
 bool thps::dd::supported() { return true; }
 
-// World_SetVisibilityInBox(a0 = box min, a1 = box max, a2, a3 = test kind; stack: set mask, clear mask) entry: the game's function, then the
-// record of which hidden bits it changed (above).
-extern "C" int thps_world_set_visibility_in_box(uint8_t* rdram, recomp_context* ctx) {
-    thread_local bool inside = false;
-    if (inside) return 0;
-    const uint32_t list = thps::sym().gWorldItems;
-    zone_sync(rdram, list);
-    const uint32_t n = uint32_t(g_zone.bits.size()), arr = g_zone.arr;
-    g_before.resize(n);
-    for (uint32_t i = 0; i < n; i++) g_before[i] = *flag_ptr(rdram, arr, i);
-    inside = true;
-    thps::call_guest(thps::sym().World_SetVisibilityInBox, rdram, ctx);
-    inside = false;
-    for (uint32_t i = 0; i < n; i++) {
-        const uint16_t after = *flag_ptr(rdram, arr, i), changed = uint16_t((g_before[i] ^ after) & 0x41);
-        if (changed && !g_zone.keep[i]) {
-            g_zone.bits[i] = uint8_t((g_zone.bits[i] & ~changed) | (after & changed));
-            if (g_zoned_since_draw.size() < 65536) g_zoned_since_draw.push_back(i);
-            g_zone.after[i] = uint8_t(after & 0x41);
-        }
-    }
-    return 1;
-}
-
-// World_FindItem(a0 = list, a1 = name checksum) entry: the game's function; an item it finds in the course list is event-owned from then on.
-extern "C" int thps_world_find_item(uint8_t* rdram, recomp_context* ctx) {
-    thread_local bool inside = false;
-    if (inside) return 0;
-    const uint32_t list = uint32_t(ctx->r4);
-    inside = true;
-    thps::call_guest(thps::sym().World_FindItem, rdram, ctx);
-    inside = false;
-    const uint32_t item = uint32_t(ctx->r2);
-    if (item && list == thps::sym().gWorldItems) {
-        if (g_named_since_draw.size() < 8192) g_named_since_draw.push_back(item);
-        zone_sync(rdram, list);
-        for (uint32_t i = 0; i < g_zone.event.size(); i++)
-            if (word(rdram, g_zone.arr + 4 * i) == item) { g_zone.event[i] = 1; break; }
-    }
-    return 1;
+// Zone ownership: which hidden bits the culling boxes set, the box and find hooks and the course's trigger table are shared by the three
+// games (src/zone_ownership.h, src/zone_ownership.cpp). THPS1: the box command shows on any nonzero value. The
+// record is per course instance; THPS1's course start is the course items drawn again after a pause (thps_world_draw_items below).
+const thps::zones::Profile& thps::zones::profile() {
+    static const Profile p{true, 0x30, 0};
+    return p;
 }
 
 // World_DrawItems(a0 = world: model list +4 (pointer to {models, count}), item pointers +12, item count +16; a1 = view; a2 = player) entry,
@@ -248,24 +163,46 @@ extern "C" int thps_world_draw_items(uint8_t* rdram, recomp_context* ctx) {
     thps::dd::HookTimer timer;   // ftime: this hook's own time (the game's drawing excluded)
     const auto& s = thps::sym();
     const uint32_t world = uint32_t(ctx->r4), view = uint32_t(ctx->r5);
+    thps::zones::Ownership& own = thps::zones::own();
+    thps::zones::Record& g_zone = own.z;
+    const bool dg = thps::dd::digest::on();   // tests: the decision digest (draw_distance.h): each call's inputs, per item what was unhidden and why it was or was not drawn
     // A course starts: the course items are drawn again after kCourseGap frames without (a load, the front end) or from another item array.
     // THPS1's gfx set-up runs once at start-up, so this is its count of course starts for the governor (the ceiling reset).
     if (world == s.gWorldItems) {
         static uint32_t last_frame = 0, last_arr = 0;
         const uint32_t fr = g_frames.load(std::memory_order_relaxed), a = word(rdram, world + 12);
-        if (fr - last_frame > kCourseGap || a != last_arr) thps::dd::note_course_start();
-        last_frame = fr, last_arr = a;
         const uint32_t cn = word(rdram, world + 16);
-        if (cn && cn <= 8192) zone_sync(rdram, world);   // a new course instance takes the items named since the last draw, then that list starts again
-        g_named_since_draw.clear(), g_zoned_since_draw.clear();
+        if (fr - last_frame > kCourseGap || a != last_arr) {
+            thps::dd::note_course_start();
+            if (dg) {   // tests: a course start and why (the frame count itself stays out of the hash: only whether the gap passed kCourseGap)
+                const bool gapped = fr - last_frame > kCourseGap, changed = a != last_arr;
+                thps::dd::digest::Hash h;
+                h.u(gapped), h.u(changed), h.u(a), h.u(last_arr), h.u(cn);
+                thps::dd::digest::record('C', uint32_t(ctx->r6), h, std::string(gapped && changed ? "gap+array" : gapped ? "gap" : "array") + " frames=" + std::to_string(fr - last_frame));
+            }
+        }
+        last_frame = fr, last_arr = a;
+        if (cn && cn <= 8192) thps::zones::sync(rdram, world);   // a new course instance takes the items named since the last draw, then that list starts again
+        own.draw_begins();
     }
     // The function sets its own frustum first (View_SetFrustum, scaled there), so the factor in use, not the view's far before the call,
     // says whether this run reaches past the game's far plane.
     const float game_far = f32(rdram, s.gFarPlane);
     const bool unhide = thps::dd::show_all() && world == s.gWorldItems;   // "full": the zone-culled items too
-    if (!(game_far > 0.0f) || (!unhide && !(thps::dd::factor() > 1.001f))) return 0;   // the game's own picture: one run, as the game does
     const uint32_t n = word(rdram, world + 16), arr = word(rdram, world + 12);
-    if (n == 0 || n > 8192) return 0;
+    auto left_to_game = [&](uint32_t why) {   // tests: the call, left to the game (why: 1 its own picture, 2 no usable item list)
+        thps::dd::digest::Hash h;
+        h.u(why), h.u(world == s.gWorldItems), h.u(n), h.u(unhide), h.u(thps::dd::unhide_everything()), h.f(game_far), h.f(thps::dd::factor());
+        thps::dd::digest::record('d', uint32_t(ctx->r6), h);
+    };
+    if (!(game_far > 0.0f) || (!unhide && !(thps::dd::factor() > 1.001f))) {   // the game's own picture: one run, as the game does
+        if (dg) left_to_game(1);
+        return 0;
+    }
+    if (n == 0 || n > 8192) {
+        if (dg) left_to_game(2);
+        return 0;
+    }
     // Zone visibility: clear the bits the zone culling set (not an event's), for this call only; every flag is put back at the end, so
     // collision and the trigger state never see the change. Items with flags 0x2000 | 0x20 are the course's backdrop (skyline, the
     // outside seen through a door): the loop does not queue them but marks them in a per-view table (0x8003546C) that the sky pass
@@ -275,18 +212,26 @@ extern "C" int thps_world_draw_items(uint8_t* rdram, recomp_context* ctx) {
     // end (the pool, blocks and rails below the BRETT wall) is 27 of them, zone-hidden until the skater comes over the edge (2026-10-23).
     static std::vector<uint32_t> saved;   // flag halfword address, value
     static std::vector<uint8_t> unhid;    // per item: unhidden here (drawn in a run before band 0, whatever its distance)
+    // tests: cat 0 not this call's (hidden for the player, a model flag, the skip byte; or in no run it draws in), 1 outside the view planes, 2 band 0 (the
+    // game's own), 3 held, 4 in a run beyond the far plane
+    static std::vector<uint16_t> before;
+    static std::vector<uint8_t> cat;
+    static std::vector<int32_t> centre, radius;   // per item, for the item lines: camera to the bounding sphere's centre, and its radius
     saved.clear();
     unhid.assign(n, 0);
+    if (dg) {
+        before.resize(n), cat.assign(n, 0);
+        for (uint32_t i = 0; i < n; i++) before[i] = *flag_ptr(rdram, arr, i);
+    }
     uint32_t hidden = 0;
     if (unhide) {
-        zone_sync(rdram, world);
+        thps::zones::sync(rdram, world);
+        thps::zones::build(rdram, ctx);
         for (uint32_t i = 0; i < n && i < g_zone.bits.size(); i++) {
             uint16_t* h = flag_ptr(rdram, arr, i);
             hidden += (*h & 0x41) != 0;
-            // A record goes stale as soon as anything else changed the bits since the zone culling did (an event hid or showed the item:
-            // the game's own state governs from then on), and an item named by an event is never unhidden.
-            if (g_zone.bits[i] && ((*h & 0x41) != g_zone.after[i] || g_zone.event[i])) g_zone.bits[i] = 0;
-            const uint16_t zone = uint16_t(*h & (thps::dd::unhide_everything() ? 0x41 : g_zone.bits[i]));
+            // Only what the zone culling hid (zone_ownership.h); nothing unhidden gives zone 0 (unhid[i] stays 0).
+            const uint16_t zone = own.unhide_bits(i, *h, thps::dd::unhide_everything());
             if (zone) {
                 saved.push_back(uint32_t(reinterpret_cast<uint8_t*>(h) - rdram));
                 saved.push_back(*h);
@@ -302,8 +247,15 @@ extern "C" int thps_world_draw_items(uint8_t* rdram, recomp_context* ctx) {
     if (unhide && thps::verbose() && (frames++ % 300) == 0) {   // evidence: hidden items, and how many of them only the zone culling hid
         uint32_t named = 0;
         for (uint8_t e : g_zone.event) named += e;
-        std::printf("[thps] draw distance: items %u, hidden %u, of them by the zone culling (unhidden for this draw) %u; items named by events %u; camera (%.0f, %.0f, %.0f)\n", n, hidden,
-                    uint32_t(saved.size() / 2), named, f32(rdram, view + 144) * 16.0f, f32(rdram, view + 148) * 16.0f, f32(rdram, view + 152) * 16.0f);
+        uint32_t in_state = 0;
+        for (uint32_t i = 0; i < n; i++) {
+            if (!unhid[i]) continue;
+            const uint32_t it = word(rdram, arr + 4 * i);
+            for (const auto& [key, culling] : thps::zones::classes())
+                if (!culling && thps::zones::item_in_box(rdram, it, key)) { in_state++; break; }
+        }
+        std::printf("[thps] draw distance: items %u, hidden %u, of them by the zone culling (unhidden for this draw) %u, in state boxes %u; items named by events %u; camera (%.0f, %.0f, %.0f)\n", n, hidden,
+                    uint32_t(saved.size() / 2), in_state, named, f32(rdram, view + 144) * 16.0f, f32(rdram, view + 148) * 16.0f, f32(rdram, view + 152) * 16.0f);
         // the ones kept hidden (not the zone culling's, or an event's): index, flags, record, event, centre (item +36/+40/+44, floats)
         for (uint32_t i = 0, shown = 0; i < n && i < g_zone.bits.size() && shown < 64; i++) {
             const uint32_t it = word(rdram, arr + 4 * i);
@@ -331,7 +283,7 @@ extern "C" int thps_world_draw_items(uint8_t* rdram, recomp_context* ctx) {
     for (int p = 0; p < 5; p++)
         for (int k = 0; k < 3; k++) plane[p][k] = f32(rdram, view + 464 + 12 * p + 4 * k);
     const uint32_t mask = uint32_t(ctx->r6) ? 64 : 1;
-    auto h16 = [&](uint32_t a) { return uint16_t(word(rdram, a & ~3u) >> ((a & 2) ? 0 : 16)); };
+    auto h16 = [&](uint32_t a) { return hword(rdram, a); };
     static std::vector<uint32_t> skip_addr;   // the skip byte of every item (RDRAM byte address)
     static std::vector<uint8_t> was;
     static std::vector<uint16_t> run;         // 0: band 0; r > 0: the r-th run beyond the far plane (1 = farthest)
@@ -348,14 +300,20 @@ extern "C" int thps_world_draw_items(uint8_t* rdram, recomp_context* ctx) {
         const float r = f32(rdram, it + 48) * 0.0625f;
         const float gap = std::sqrt(dx * dx + dy * dy + dz * dz) - r;   // camera to the bounding sphere
         const uint16_t flags = h16(word(rdram, it + 4));
-        if (unhid[i] && gap > reach) { run[i] = kHeld; continue; }   // the factor below its end: not drawn this frame
+        if (dg) centre.resize(n), radius.resize(n), centre[i] = int32_t(gap + r), radius[i] = int32_t(r);
+        if (unhid[i] && gap > reach) { run[i] = kHeld; if (dg) cat[i] = 3; continue; }   // the factor below its end: not drawn this frame
         // band 0: within the far plane, and the backdrop (0x2000 | 0x20); an unhidden item never otherwise (band 0 is what the game draws)
-        if (unhid[i] ? (flags & 0x2020) == 0x2020 : ((flags & 0x2000) || !(gap > game_far))) continue;
+        if (unhid[i] ? (flags & 0x2020) == 0x2020 : ((flags & 0x2000) || !(gap > game_far))) {
+            if (dg) cat[i] = 2;
+            continue;
+        }
         ModelCost c;
         // Drawn at all? The same tests as the game's loop, then the planes (last call's planes: a margin for a turning camera).
         bool drawn = !(flags & mask) && !(word(rdram, word(rdram, it + 8)) & 0x20) && !was[i];
+        if (dg) cat[i] = drawn ? 4 : 0;
         for (int p = 0; drawn && !(flags & 0x2000) && p < 5; p++)   // (0x2000: the game skips the sphere test)
             if (plane[p][0] * dx + plane[p][1] * dy + plane[p][2] * dz + r + 0.25f * gap < 0.0f) drawn = false;
+        if (dg && cat[i] == 4 && !drawn) cat[i] = 1;
         const uint32_t mi = h16(it + 2);   // the main model (a LOD model, when the game picks one, is smaller)
         if (drawn && mi < cost.size()) {
             if (!have[mi]) cost[mi] = model_cost(rdram, word(rdram, models + 4 * mi)), have[mi] = 1;
@@ -385,6 +343,40 @@ extern "C" int thps_world_draw_items(uint8_t* rdram, recomp_context* ctx) {
     }
     inside = false;
     restore();
+    if (dg) {   // tests: the call's inputs, each item's record and decision, the runs in order, and whether every flag and skip byte was put back
+        thps::dd::digest::Hash h;
+        h.u(n), h.u(world == s.gWorldItems), h.u(unhide), h.u(thps::dd::unhide_everything()), h.u(mask), h.u(a2);
+        h.f(game_far), h.f(f32(rdram, view + 372)), h.f(thps::dd::factor()), h.f(reach);
+        for (float c : cam) h.f(c);
+        uint32_t restore_bad = 0, counts[5] = {0, 0, 0, 0, 0}, unhidden = 0;
+        for (uint32_t i = 0; i < n; i++) {
+            restore_bad += *flag_ptr(rdram, arr, i) != before[i] || rdram[skip_addr[i]] != was[i];
+            const bool rec = i < g_zone.bits.size();
+            h.u(before[i]), h.u(rec ? g_zone.bits[i] : 0), h.u(rec ? g_zone.after[i] : 0), h.u(rec ? g_zone.event[i] : 0), h.u(rec ? g_zone.state[i] : 0);
+            h.u(unhid[i]), h.u(cat[i]), h.u(run[i]), h.u(was[i]);
+            counts[cat[i]]++, unhidden += unhid[i] != 0;
+            if (thps::dd::digest::items())
+                thps::dd::digest::item_line(std::to_string(i) + " " + std::to_string(cat[i]) + " " + std::to_string(run[i]) + " " + std::to_string(before[i]) + " " +
+                                            std::to_string(unhid[i]) + " " + std::to_string(rec ? g_zone.bits[i] : 0) + " " +
+                                            std::to_string(rec ? g_zone.event[i] : 0) + " " + std::to_string(rec ? g_zone.state[i] : 0) + " " +
+                                            std::to_string(centre[i]) + " " + std::to_string(radius[i]));
+        }
+        // the runs in order: each run's first-to-last items in the sorted list (farthest first) with the queue and second-list entries it was cut at
+        h.u(runs), h.u(far_list.size());
+        uint32_t cur = 0, count = 0, qq = 0, bb = 0;
+        auto close_run = [&] { if (cur) h.u(cur), h.u(count), h.u(qq), h.u(bb); };
+        for (const Far& f : far_list) {
+            if (run[f.i] != cur) close_run(), cur = run[f.i], count = qq = bb = 0;
+            count++, qq += f.c.queue, bb += f.c.blend;
+            h.u(f.i);
+        }
+        close_run();
+        h.u(restore_bad);
+        char d[200];
+        std::snprintf(d, sizeof d, "unhidden=%u own=%u held=%u view=%u notdrawn=%u runs=%u restore_bad=%u factor=%.3f far=%.0f", unhidden, counts[2], counts[3],
+                      counts[1], counts[0], runs, restore_bad, double(thps::dd::factor()), double(game_far));
+        thps::dd::digest::record('D', uint32_t(a2), h, d);
+    }
     return 1;
 }
 
@@ -460,34 +452,10 @@ bool thps::dd::dd_game_measure(uint8_t* rdram, uint32_t data_ptr, uint32_t data_
     return true;
 }
 
-// `dd item N` (tests): the item's hidden bits now, the zone record (after the draw call's stale-record check), event ownership, and
-// whether "full" draws it this frame (the same rule as thps_world_draw_items).
-std::string thps::dd::dd_game_item(uint8_t* rdram, uint32_t index) {
-    const uint32_t list = thps::sym().gWorldItems;
-    const uint32_t n = word(rdram, list + 16), arr = word(rdram, list + 12);
-    if (n == 0 || n > 8192 || index >= n) return "none";
-    zone_sync(rdram, list);
-    const uint16_t f = *flag_ptr(rdram, arr, index);
-    const uint8_t zone = index < g_zone.bits.size() ? g_zone.bits[index] : 0, event = index < g_zone.event.size() ? g_zone.event[index] : 0;
-    const uint16_t unhidden = thps::dd::show_all() ? uint16_t(f & (thps::dd::unhide_everything() ? 0x41 : zone)) : 0;
-    uint32_t named = 0;
-    for (uint8_t e : g_zone.event) named += e;
-    char buf[160];
-    std::snprintf(buf, sizeof buf, "flags 0x%04X zone 0x%02X event %u drawn %d named %u gen %llu", f, zone, event, ((f & 0x41) & ~unhidden) == 0, named,
-                  (unsigned long long)g_zone.gen);
-    return buf;
-}
+// `dd item N` / `dd own N` (tests): src/zone_ownership.cpp.
+std::string thps::dd::dd_game_item(uint8_t* rdram, uint32_t index) { return thps::zones::dd_item(rdram, index); }
+std::string thps::dd::dd_game_own(uint8_t* rdram, uint32_t index) { return thps::zones::dd_own(rdram, index); }
 
-// `dd own N` (tests): item N is event-owned from now on, as World_FindItem would make it (thps_world_find_item).
-std::string thps::dd::dd_game_own(uint8_t* rdram, uint32_t index) {
-    const uint32_t list = thps::sym().gWorldItems;
-    const uint32_t n = word(rdram, list + 16);
-    if (n == 0 || n > 8192 || index >= n) return "none";
-    zone_sync(rdram, list);
-    if (index >= g_zone.event.size()) return "none";
-    g_zone.event[index] = 1;
-    return dd_game_item(rdram, index);
-}
 // The matrix pools. The gfx set-up (us11 0x800BDA40, us10 0x800A3DE0, once at start-up) asks Heap_Alloc(gMainHeap, 32000, 8) twice: the
 // first result goes to gMtxPools[0], then (s0 = &gMtxPools in the delay slot) the second to gMtxPools[1]. Those two are the only requests
 // of that size and alignment made while gMtxPools[1] is still 0, so no other call is touched, and after start-up none matches again.
@@ -497,16 +465,6 @@ std::string thps::dd::dd_game_own(uint8_t* rdram, uint32_t index) {
 // The heap (Heap_AllocUnlocked 0x8009E728): free list head +0, next +4, free bytes at a block's end +20; +16 the size of the last failed
 // request (-1 = none), which makes every later request of that size or more fail at once.
 namespace {
-struct HeapStats { uint32_t failed, free_bytes, largest, blocks; };
-HeapStats heap_stats(const uint8_t* rdram, uint32_t heap) {
-    HeapStats h{word(rdram, heap + 16), 0, 0, 0};
-    for (uint32_t b = word(rdram, heap), k = 0; b && k < 100000; b = word(rdram, b + 4), k++) {
-        const uint32_t f = word(rdram, b + 20);
-        h.free_bytes += f, h.largest = std::max(h.largest, f), h.blocks++;
-    }
-    return h;
-}
-void put_word(uint8_t* rdram, uint32_t vaddr, uint32_t v) { *reinterpret_cast<uint32_t*>(rdram + (vaddr & 0x3FFFFFC)) = v; }
 uint32_t g_first_pool = 0;      // game thread, start-up: what the first pool request returned
 bool g_first_big = false;       //   and whether it is the bigger size
 // Low-water marks of gMainHeap (any thread that allocates; under g_low_mutex), since the start or `dd heap reset`.
@@ -573,12 +531,24 @@ extern "C" int thps_mem_alloc(uint8_t* rdram, recomp_context* ctx) {
         if (!first) g_first_big = false;   // the first pool stays bigger than it needs; both are used at the game's cap
     }
     thps::dd::heap_view_take(need(enlarge ? kBigMtxCap * 64 : kGamePool), first ? "matrix pool 0" : "matrix pool 1");
+    // tests: the set-up's two pool requests, as made (asked: the size handed to the game's allocator, taken before that call; the matrix allocator itself is not recorded)
+    auto note_pool = [&](uint32_t asked, bool big, uint32_t got) {
+        thps::dd::digest::Hash h;
+        h.u(first), h.u(second), h.u(size), h.u(align), h.u(enlarge), h.u(big), h.u(asked), h.u(got != 0), h.u(g_mtx_cap.load());
+        char d[128];
+        std::snprintf(d, sizeof d, "pool%d size=%u asked=%u big=%d ok=%d", first ? 0 : 1, size, asked, big, got != 0);
+        thps::dd::digest::record('A', 0, h, d);
+    };
     if (!enlarge) {
         if (first) g_first_pool = 0, g_first_big = false;
-        return own_request();   // the game's own request
+        const uint32_t asked = uint32_t(ctx->r5);
+        const int rc = own_request();   // the game's own request
+        if (thps::dd::digest::on()) note_pool(asked, false, uint32_t(ctx->r2));
+        return rc;
     }
     const HeapStats before = heap_stats(rdram, heap);
     ctx->r5 = int32_t(kBigMtxCap * 64);
+    const uint32_t asked = uint32_t(ctx->r5);   // tests: what the game's allocator is asked for
     inside = true;
     thps::call_guest(s.Heap_Alloc, rdram, ctx);
     const bool big = uint32_t(ctx->r2) != 0;
@@ -590,6 +560,7 @@ extern "C" int thps_mem_alloc(uint8_t* rdram, recomp_context* ctx) {
     } else if (g_first_big && big) {
         g_mtx_cap = kBigMtxCap;   // both pools are the bigger size: Gfx_AllocMtx may hand out that many
     }
+    if (thps::dd::digest::on()) note_pool(asked, big, got);
     const HeapStats after = heap_stats(rdram, heap);
     std::printf("[thps] draw distance: matrix pool %d: %s (%u bytes) at 0x%08X; heap free %u -> %u bytes, largest block %u -> %u\n", first ? 0 : 1,
                 big ? "2048 matrices" : "no room for 2048 matrices, the game's 500", big ? kBigMtxCap * 64 : kGamePool, got, before.free_bytes,

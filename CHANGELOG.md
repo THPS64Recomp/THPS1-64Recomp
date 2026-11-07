@@ -7,6 +7,16 @@ All notable changes to THPS1 64: Recompiled are listed here. The format is based
 
 ## [Unreleased]
 
+### Changed
+- Built on THPS64Host v0.3.0.
+- Full draw distance tells scenery the game hides for distance apart from geometry hidden by course events, which stays as
+  the game sets it.
+
+### Fixed
+- Full draw distance leaves rooms to the game: a zone the course hides from its own doors, such as School's gym, is drawn as in
+  the original, so its doorway no longer shows overlapping geometry. This replaces the School-specific safeguard of v0.2 and
+  finds such zones in every course from the course's own trigger data.
+
 ## [0.2.0] - 2026-10-27
 
 Built on THPS64Host v0.2.0: split screen, Picture Border, rebinding, draw distance and the Original and Enhanced

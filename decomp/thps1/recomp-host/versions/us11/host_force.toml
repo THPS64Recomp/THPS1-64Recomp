@@ -32,6 +32,7 @@ splits = [0x800B3C20]   # `jr ra; li v0,1` after the endless thread loop func_80
 "0x800BD9F4" = "Gfx_AllocMtx"   # (): gMtxPools[gFrameIndex] + 64 x gMtxCount++, or gMtxScratch from 500 on (`slti 500`)
 "0x800BE5A4" = "Gfx_FrameEnd"   # end of every screen's frame: the gfx task (0x800BC654), then *gMtxResetList[i] = 0 for each entry, count = 0, gFrameIndex ^= 1
 "0x80034AA4" = "World_SetVisibilityInBox"   # (min, max, a2, a3, set mask, clear mask): the trigger scripts' zone culling (its only caller, 0x80048438, is the command at 0x80060870 of the trigger command list); sets / clears the hidden bits (1, player 2: 0x40) of every course item whose centre is in the box
+"0x8005FE98" = "Trig_SkipCommand"   # v1.1 trigger command skip; Europe shares this code class
 "0x80038F9C" = "World_FindItem"   # (list, name checksum) -> item: the per-item commands (hide by name 0x80035250, flag pointer by name 0x800352A4) and the gameplay code
 "0x800A93B0" = "Music_LoadSong"   # = THPS2 USA 0x800D1E34 (same code, only the string/table addresses differ)
 

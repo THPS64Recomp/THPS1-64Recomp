@@ -20,6 +20,7 @@ funcs = [
     "Gfx_FrameEnd",           # (): sends the frame's gfx task, clears the reset list, swaps the buffers (draw distance: the reset list)
     "World_SetVisibilityInBox", # (min, max, ...): the trigger scripts' zone culling (draw distance "full": which items it hid)
     "World_FindItem",         # (list, name): one course item by name (draw distance "full": items an event names are never unhidden)
+    "Trig_SkipCommand",       # trigger command-list walker used by the shared zone classifier
 ]
 
 # Addresses of game data (versions/<class>/data_syms.toml [addr]).
@@ -50,6 +51,8 @@ addr = [
     "gMtxCount",              # draw distance: matrices handed out this frame (Gfx_AllocMtx; the frame start zeroes it)
     "gFrameIndex",            # draw distance: which of the two display lists / matrix pools this frame uses (word, 0 or 1)
     "gWorldItems",            # draw distance: the course's item list (World_DrawItems' a0): pointers at +12, count at +16
+    "gTrgNodes",              # trigger node pointer table
+    "gTrgNodeCount",          # trigger node count
     "gMtxResetCount",         # draw distance: entries on the frame's reset list (pointers right after it, about 2000 slots; no cap check)
     "gMusNumChannels",        # MUS library: number of channels (word)
     "gMusChannels",           # MUS library: pointer to the channel records (304 bytes each; src/music.cpp)
